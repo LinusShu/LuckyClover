@@ -1,4 +1,4 @@
-package bingosimulator;
+package com.luckclover;
 
 
 import java.io.*;

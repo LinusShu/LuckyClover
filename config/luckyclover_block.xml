@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+	<blocks>
+		<!-- Block Information
+			 numplays: [integer > 0]
+			 numcards: [small integer > 0]
+			 wager: [double > 0]
+		 -->
+		 <block numplays="10" numcards="1" wager="0.25" />
+	</blocks>
+</data>

@@ -1,27 +1,492 @@
-package com.luckclover;
+package com.luckyclover;
 
+import java.io.File;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
 
-import java.io.*;
-import java.util.Scanner;
-import java.awt.*;
-import java.awt.event.*;
-import javax.swing.*;
-import javax.swing.filechooser.*;
-import java.util.Random;
-import java.lang.Math;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
-    
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
-//Reads a Comma Separated Value file and creates summary data in another CSV file.
-import java.io.*;
-import java.util.Arrays;
+import com.luckyclover.database.Database;
+import com.luckyclover.view.ViewInterface;
 
-public class BingoSimulator{
+public class LuckyCloverModel {
+	private static LuckyCloverModel instance = null;
+	
+	public static String RESULTS_TABLE_NAME = "Results";
+	public static String PAYTABLE_NAME = "Paytable";
+	public static String BLOCKS_TABLE_NAME = "Blocks";
+	
+	private File configFile;
+	private File blockFile;
+	private String tablesuffix = "";
+	
+	private LuckyCloverLog log;
+	private Simulator simulator;
+	
+	private boolean running = false;
+	private boolean cancelled = false;
+	private boolean paused = false;
+	private boolean error = false;
+	
+	private int totalplays = 0;
+	private int currplayed = 0;
+	
+	private ArrayList<ViewInterface> views = new ArrayList<ViewInterface>();
+	private ArrayList<String> errorLog = new ArrayList<String>();
+	private ArrayList<String> warningLog = new ArrayList<String>();
+	private ArrayList<String> errorLog2 = new ArrayList<String>();
+	private ArrayList<String> warningLog2 = new ArrayList<String>();
+	
+	private ArrayList<PaytableEntry> paytable = new ArrayList<PaytableEntry>();
+	private ArrayList<Block> blocks = new ArrayList<Block>();
+	
+	private LuckyCloverModel() {
+		this.log = new LuckyCloverLog("log");
+		this.simulator = new Simulator(this);
+	}
+	
+	public static LuckyCloverModel getInstance() {
+		if (instance == null)
+			instance = new LuckyCloverModel();
+		return instance;
+	}
+	
+	public void AddView(ViewInterface view) {
+		if (view != null) {
+			this.views.add(view);
+			view.updateView();
+		}
+	}
+	
+	public void UpdateViews() {
+		for (ViewInterface v : this.views) {
+			v.updateView();
+		}
+	}
+	
+	public void setTotalPlays(int value) {
+		this.totalplays = value;
+	}
+	
+	public void setConfigFile(File f) {
+		this.configFile = f;
+		this.UpdateViews();
+	}
+	
+	public void setBlockFile(File f) {
+		this.blockFile = f;
+		this.UpdateViews();
+	}
+	
+	public void setDBName(String name) {
+		Database.setDBName(name);
+		this.UpdateViews();
+	}
+	
+	public void setDBName() {
+		Database.setDBName(Database.DEFAULT_DB_NAME);
+		this.UpdateViews();
+	}
+	
+	public void setTableSuffix() {
+		Date date = new Date();
+		SimpleDateFormat sft = new SimpleDateFormat("MM_dd_yyyy_HH_mm_ss");
+		String formattedDate = sft.format(date);
+		this.tablesuffix = formattedDate;
+	}
 
- 
-	public static void main(String[] arg) throws Exception {
-
-		BufferedReader CSVFile = new BufferedReader(new FileReader("C://Users//dev//Desktop//bingojavafiles//WinningCards.csv"));
+	public void setError() {
+		this.error = true;
+		this.UpdateViews();
+	}
+	
+	public String getDBName() {
+		return Database.getDBname();
+	}
+	
+	public String getTableSuffix() {
+		return this.tablesuffix;
+	}
+	
+	public String getResultsDBTableName() {
+		return this.buildDBTableName(RESULTS_TABLE_NAME);
+	}
+	
+	public String getPaytableDBName() {
+		return this.buildDBTableName(PAYTABLE_NAME);
+	}
+	
+	public String getBlocksDBname() {
+		return this.buildDBTableName(BLOCKS_TABLE_NAME);
+	}
+	
+	public File getConfigFile() {
+		return this.configFile;
+	}
+	
+	public File getBlockFile() {
+		return this.blockFile;
+	}
+	
+	public String getLogFilePath() {
+		return this.log.getFilePath();
+	}
+	
+	public int getTotalPlays() {
+		return this.totalplays;
+	}
+	
+	public int getCurrPlayed() {
+		return this.currplayed;
+	}
+	
+	public void start() {
+		this.running = true;
+		this.paused = false;
+		this.UpdateViews();
+	}
+	
+	public void stop() {
+		this.running = false;
+		this.paused = false;
+		this.UpdateViews();
+	}
+	
+	public void pause() {
+		this.paused = true;
+		this.UpdateViews();
+	}
+	
+	public void cancel() {
+		this.cancelled = true;
+		this.running = false;
+		this.UpdateViews();
+	}
+	
+	public void resume() {
+		this.paused = false;
+		this.UpdateViews();
+	}
+	
+	public boolean isSetupValid() {
+		if (this.configFile != null && this.blockFile != null
+				&& this.getDBName().length() > 0)
+			return true;
+		
+		return false;
+	}
+	
+	public boolean isRunning() {
+		return this.running;
+	}
+	
+	public boolean isPaused() {
+		return this.paused;
+	}
+	
+	public boolean isCancelled() {
+		return this.cancelled;
+	}
+	
+	public boolean isError() {
+		return this.error;
+	}
+	
+	private String buildDBTableName(String tablename) {
+		return tablename + "_" + getTableSuffix();
+	}
+	
+	protected void generateDBTableName() {
+		this.setTableSuffix();
+		this.log.writeLine("Set Paytable DB Table Name: " + this.getPaytableDBName());
+		this.log.writeLine("Set Blocks DB Table Name: " + this.getBlocksDBname());
+		this.log.writeLine("Set Results DB Table Name: " + this.getResultsDBTableName());
+	}
+	
+	public void addErrorToLog(String err) {
+		this.errorLog.add(err);
+	}
+	
+	public void addWarningToLog(String warn) {
+		this.warningLog.add(warn);
+	}
+	
+	public void addErrorToLog2(String err) {
+		this.errorLog2.add(err);
+	}
+	
+	public void addWarningToLog2(String warn) {
+		this.warningLog2.add(warn);
+	}
+	
+	private void clearAll() {
+		//TODO: clear stuff here
+		this.simulator.reset();
+		this.totalplays = 0;
+		this.currplayed = 0;
+		this.cancelled = false;
+		
+		this.running = false;
+		this.paused = false;
+		this.error = false;
+		
+		this.paytable.clear();
+		this.blocks.clear();
+		
+		this.errorLog.clear();
+		this.warningLog.clear();
+		this.errorLog2.clear();
+		this.warningLog2.clear();
+	}
+	
+	private boolean loadConfigFile(File file) {
+		clearAll();
+		
+		try {
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docbuilder = dbf.newDocumentBuilder();
+			Document doc = docbuilder.parse(file);
+			doc.getDocumentElement().normalize();
+			
+			this.readPaytable(doc);
+		} catch (Exception e) {
+			this.addErrorToLog("An exception occurred while reading config file: "
+					+ e.getMessage()
+					+ ", Stack Trace: "
+					+ e.getStackTrace().toString());
+		}
+		
+		this.log.writeLine("Reading Configurate File...Finished. Errors: "
+				+ this.errorLog.size()
+				+ ", Warnings: "
+				+ this.warningLog.size());
+		
+		if (this.errorLog.size() > 0) {
+			for (String s : this.errorLog)
+				this.log.writeLine("Error: " + s);
+		}
+		
+		if (this.warningLog.size() > 0) {
+			for (String s : this.warningLog)
+				this.log.writeLine("Warning: " + s);
+		}
+		
+		return (this.errorLog.size() == 0);
+	}
+	
+	private boolean loadBlocks(File file) {
+		
+		try {
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docbuilder = dbf.newDocumentBuilder();
+			Document doc = docbuilder.parse(file);
+			doc.getDocumentElement().normalize();
+			this.readBlocks(doc);
+		} catch (Exception e) {
+			this.addErrorToLog2("An exception occurred while reading blocks file: "
+					+ e.getMessage()
+					+ ", Stack Trace: "
+					+ e.getStackTrace().toString());
+		}
+		
+		this.log.writeLine("Reading Blocks File...Finished. Errors: "
+				+ this.errorLog2.size()
+				+ ", Warnings: "
+				+ this.warningLog2.size());
+		
+		if (this.errorLog2.size() > 0) {
+			for (String s : this.errorLog2)
+				this.log.writeLine("ERROR: " + s);
+		}
+		
+		if (this.warningLog2.size() > 0) {
+			for (String s : this.warningLog2)
+				this.log.writeLine("WARNING: " + s);
+		}
+		
+		return (this.errorLog2.size() == 0);
+	}
+	
+	private void readPaytable(Document doc) {
+		NodeList nl = doc.getElementsByTagName("PaytableEntry");
+		for (int i = 0; i < nl.getLength(); i++) {
+			Node node = nl.item(i);
+			if (node.getNodeType() == Node.ELEMENT_NODE) {
+				Element e = (Element) node;
+				
+				String winCode = e.getAttribute("winCode");
+				String name = e.getAttribute("name");
+				int winPattern, payout;
+				
+				try {
+					winPattern = Integer.parseInt(e.getAttribute("winPattern"));
+					payout = Integer.parseInt(e.getAttribute("payout"));
+				} catch (NumberFormatException nfe) {
+					this.addErrorToLog("PaytableEntry["
+							+ Integer.toString(i)
+							+ "]: Invalid value for winPattern/payout.");
+					winPattern = payout = -1;
+				}
+				
+				if (winPattern > 0 && payout > 0) {
+					PaytableEntry pe = new PaytableEntry();
+					pe.setWinCode(winCode);
+					pe.setName(name);
+					pe.setWinPattern(winPattern);
+					pe.setPayout(payout);
+					this.paytable.add(pe);
+				}
+			}
+		}
+	}
+	
+	private void readBlocks(Document doc) {
+		NodeList list = doc.getElementsByTagName("block");
+		for (int i = 0; i < list.getLength(); i++) {
+			Node node = list.item(i);
+			if (node.getNodeType() == Node.ELEMENT_NODE) {
+				Element e = (Element) node;
+				
+				int numplays = -1;
+				int numcards = -1;
+				double wager = -1;
+				
+				try {
+					numplays = Integer.parseInt(e.getAttribute("numplays"));
+					numcards = Integer.parseInt(e.getAttribute("numcards"));
+					wager = Double.parseDouble(e.getAttribute("wager"));
+				} catch (NumberFormatException nfe) {
+					this.addErrorToLog2("Block[" + Integer.toString(i)
+							+ "]: Invalid vaule(s) for this block.");
+				}
+				
+				if (numplays > 0 && numcards > 0 && wager > 0) {
+					Block b = new Block();
+					b.setNumPlays(numplays);
+					b.setNumCards(numcards);
+					b.setWager(wager);
+					b.setBlockNum(i + 1);
+					this.blocks.add(b);
+				} else 
+					this.addErrorToLog2("Block[" + Integer.toString(i)
+							+ "]: All attributes must be greater than 0.");
+			}
+		}
+	}
+	
+	private int calculateTotalPlays() {
+		int tp = 0;
+		
+		for (Block b : this.blocks)
+			tp += b.getNumPlays();
+		
+		return tp;
+	}
+	
+	public void launch() {
+		this.log.writeLine("LAUNCH NEW SESSION...");
+		
+		this.generateDBTableName();
+		
+		// Load config file
+		boolean isLoadSuccessful = loadConfigFile(this.configFile);
+		
+		if (isLoadSuccessful) {
+			// Load blocks file
+			isLoadSuccessful = loadBlocks(this.blockFile);
+			
+			if (isLoadSuccessful) {
+				start();
+				produce();
+			} else 
+				this.setError();
+		} else 
+			this.setError();
+		
+	}
+	
+	private void produce() {
+		Thread t = new Thread() {
+			public void run() {
+				LuckyCloverModel.this.log.writeLine("START PRODUCTION"); 
+				
+				int totalplay = LuckyCloverModel.this.calculateTotalPlays();
+				LuckyCloverModel.this.setTotalPlays(totalplay);
+				LuckyCloverModel.this.log.writeLine("Total Plays: " + Integer.toString(totalplay));
+				
+				if (totalplay > 0) {
+					// Create paytable and blocks database tables
+					try {
+						Database.createConnection();
+						
+						if (LuckyCloverModel.this.paytable != null
+								&& LuckyCloverModel.this.paytable.size() > 0) {
+							for (int i = 0; i < LuckyCloverModel.this.paytable.size(); i++) {
+								PaytableEntry pe = LuckyCloverModel.this.paytable.get(i);
+								pe.setEntryID(i);
+								
+								Database.insertIntoTable(getPaytableDBName(), pe);
+							}
+							Database.flushBatch();
+						}
+						
+						if (LuckyCloverModel.this.blocks != null
+								&& LuckyCloverModel.this.blocks.size() > 0) {
+							for (int i = 0; i < LuckyCloverModel.this.blocks.size(); i++) {
+								Block b = LuckyCloverModel.this.blocks.get(i);
+								Database.insertIntoTable(getBlocksDBname(), b);
+							}
+							Database.flushBatch();
+						}
+						
+					} catch (Exception e) {
+						LuckyCloverModel.this.setError();
+						LuckyCloverModel.this.log.writeLine("ERROR: "
+								+ "Failed to connect to DB while creating paytable/blocks tables. "
+								+ "Message: " + e.getMessage());
+					}
+					
+					try {
+						LuckyCloverModel.this.log.writeLine("GENERATING RESULTS...\n");
+						//TODO main mechanics here
+						
+					} catch (Exception e) {
+						LuckyCloverModel.this.stop();
+						LuckyCloverModel.this.log.writeLine("ERROR: Results generation encountered error. "
+								+ "Message: " + e.getMessage());
+						e.printStackTrace();
+						
+					} finally {
+						// Close database connection when done;
+						try {
+							Database.shutdownConnection();
+						} catch (SQLException e) {
+							LuckyCloverModel.this.log.writeLine("ERROR: Closing database encountered error. "
+									+ "Message: " + e.getMessage());
+							e.printStackTrace();
+						}
+					}
+				} else {
+					LuckyCloverModel.this.stop();
+				}
+				
+				LuckyCloverModel.this.log.writeLine("END OF PRODUCTION");
+			}
+		};
+		
+		t.setPriority(Thread.MAX_PRIORITY);
+		t.start();
+		
+		/**
+		BufferedReader CSVFile = new BufferedReader(new FileReader("config//WinningCards.csv"));
 
 		FileWriter fstream = new FileWriter("out.csv");
 		BufferedWriter out = new BufferedWriter(fstream);
@@ -38,10 +503,7 @@ public class BingoSimulator{
 		int[] countOfWinningCombinations = new int[55] ;
 		int[] nbrBingos = new int[26] ;
 		int nbrBits = 0;
-		int nbrBitsInK = 0;
-		int m = 0;
 		int total = 0;
-		boolean lookingForMatch = true;
 		int[] [] countOfWinSizes = new int[25] [15];
 		double[] winSizes = new double [15] ;
 		int ball[] = new int[26];
@@ -99,11 +561,12 @@ public class BingoSimulator{
 		}
 	
 		catch (Exception e) {
-			out.write("Catch" + "\r\n");
+			out.write("Catch" + e.getMessage() + "\r\n");
 			CSVFile.close();
-			out.close();
+			//out.close();
+			e.printStackTrace();
 		}
-	
+		
 		// Count the number of bits in each winning pattern.
 		for ( i=0; i<53; i++ ) {
 			nbrBits=0;
@@ -118,6 +581,7 @@ public class BingoSimulator{
 				winningBits[k] = (j & 1);
 				k=k+1;
 				j >>= 1;
+			
 			} while (j != 0);
 			out.write("nbrBits for " + i + " - " + Integer.toBinaryString(winningCombination[i]) + " - " + nbrBitsWinningCombination[i] + "winAmount," + winAmount[i] +  "\r\n");
 			out.write( winningBits[5] + " " + winningBits[4] + " " + winningBits[3]+ " " + winningBits[2]+ " " + winningBits[1] + "\r\n");
@@ -137,7 +601,7 @@ public class BingoSimulator{
 		// and 100,000 times there would be 24 new bingo numbers between 1-75 drawn at random.
 		// "Ball" is the 24 numbers drawn for this game.  There cannot be duplicates.
 
-		for (junk=1; junk<10; junk++) {
+		for (junk = 1; junk < 10; junk++) {
 	    
 			gameOutcome=0;
 			ball[1] = randomGenerator.nextInt(75);
@@ -163,7 +627,7 @@ public class BingoSimulator{
 			} while (ballsFound < 24);
 	
 			// This is just a double check to ensure we don't have any duplicate balls.
-			for (i=1; i<24; i++) {
+			for (i = 1; i < 24; i++) {
 				for (j=(i+1);j<=24;j++){
 					if (ball[i]== ball[j]){
 						out.write ("i,"+ i + ",j," + "XXXXXXXXXXXXXXXXXXXXXX\r\n");
@@ -225,7 +689,7 @@ public class BingoSimulator{
 				card[i] = card[i] + 31;
 				for ( j=10; j<(i); j++ ) {
 					if (card[i] == card[j]){
-						i=i - 1;
+						i -= 1;
 						break;
 					}
 				}
@@ -266,7 +730,7 @@ public class BingoSimulator{
 			} while (i < 24);  
 	
 	
-			//      For some reason I have to rotate the Bingo card. I forget why.
+			//For some reason I have to rotate the Bingo card. I forget why.
 			cardRotated[1] = card[5];
 			cardRotated[2] = card[10];
 			cardRotated[3] = card[14];
@@ -469,7 +933,7 @@ public class BingoSimulator{
 		out.write("Normal End" + "\r\n");
 		CSVFile.close();
 		out.close();
-		
+		**/
 	
 	}//main()
 	 
@@ -485,7 +949,121 @@ public class BingoSimulator{
 		return count;
 	}
 	
-} 
-    
+	
+	
+	
+	//Simulator class
+	public class Simulator {
+		private LuckyCloverModel model = null;
+		
+		public Simulator(LuckyCloverModel model) {
+			this.model = model;
+		}
+		
+		public void reset() {
+			
+		}
+	}
 
-
+	
+	// PaytableEntry class
+	public class PaytableEntry {
+		private String winCode;
+		private String name;
+		private int payout;
+		private int winPattern;
+		private int entryID;
+		
+		public void setEntryID(int value) {
+			this.entryID = value;
+		}
+		
+		public void setWinCode(String value) {
+			this.winCode = value;
+		}
+		
+		public void setName(String value) {
+			this.name = value;
+		}
+		
+		public void setPayout(int value) {
+			this.payout = value;
+		}
+		
+		public void setWinPattern(int value) {
+			this.winPattern = value;
+		}
+		
+		public int getEntryID() {
+			return this.entryID;
+		}
+		
+		public String getWinCode() {
+			return this.winCode;
+		}
+		
+		public String getName() {
+			return this.name;
+		}
+		
+		public int getPayout() {
+			return this.payout;
+		}
+		
+		public int getWinPattern() {
+			return this.winPattern;
+		}
+	}
+	
+	// Block class
+	public class Block {
+		private int numplays = 0;
+		private int numcards = 1;
+		private int currplay = 0;
+		private double wager = 0;
+		private long blocknum = 0;
+		
+		public void setNumPlays(int value) {
+			this.numplays = value;
+		}
+		
+		public void setNumCards(int value) {
+			this.numcards = value;
+		}
+		
+		public void setWager(double value) {
+			this.wager = value;
+		}
+		
+		public void setBlockNum(long value) {
+			this.blocknum = value;
+		}
+		
+		public int getNumPlays() {
+			return this.numplays;
+		}
+		
+		public int getNumCards() {
+			return this.numcards;
+		}
+		
+		public double getWager() {
+			return this.wager;
+		}
+		
+		public long getBlockNum() {
+			return this.blocknum;
+		}
+		
+		public int getCurrPlay() {
+			return this.currplay;
+		}
+		
+		public boolean isIncrementCurrPlay() {
+			this.currplay++;
+			return (this.currplay >= this.numplays);
+		}
+	}
+	
+	
+}

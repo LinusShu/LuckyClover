@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+
+	<Paytable>
+		<!-- Paytable information
+			 winPattern: [integer > 0] the decimal representation of the binary win pattern
+			 payout: [integer > 0]
+			 name: [string]
+		-->
+		
+		<PaytableEntry winCode="0001" winPattern="9148881" payout="10000" name="clover" />
+		
+		<PaytableEntry winCode="0002" winPattern="16523792" payout="2000" name="crazy_letter_l" />
+		<PaytableEntry winCode="0002" winPattern="16270369" payout="2000" name="crazy_letter_l" />
+		<PaytableEntry winCode="0002" winPattern="541759" payout="2000" name="crazy_letter_l" />
+		<PaytableEntry winCode="0002" winPattern="8659487" payout="2000" name="crazy_letter_l" />
+		
+		<PaytableEntry winCode="0003" winPattern="2178180" payout="1000" name="cross" />
+		
+		<PaytableEntry winCode="0004" winPattern="235968" payout="400" name="s_picture_frame" />
+		
+		<PaytableEntry winCode="0005" winPattern="2270532" payout="300" name="l_diamond" />
+		
+		<PaytableEntry winCode="0006" winPattern="2162847" payout="200" name="crazy_letter_t" />
+		<PaytableEntry winCode="0006" winPattern="556065" payout="200" name="crazy_letter_t" />
+		<PaytableEntry winCode="0006" winPattern="16318596" payout="200" name="crazy_letter_t" />
+		<PaytableEntry winCode="0006" winPattern="8666640" payout="200" name="crazy_letter_t" />
+		
+		<PaytableEntry winCode="0007" winPattern="9077073" payout="120" name="letter_x" />
+		
+		<PaytableEntry winCode="0008" winPattern="13212" payout="100" name="block_of_9" />
+		<PaytableEntry winCode="0008" winPattern="471936" payout="100" name="block_of_9" />
+		<PaytableEntry winCode="0008" winPattern="15151104" payout="100" name="block_of_9" />
+		<PaytableEntry winCode="0008" winPattern="6606" payout="100" name="block_of_9" />
+		<PaytableEntry winCode="0008" winPattern="235968" payout="100" name="block_of_9" />
+		<PaytableEntry winCode="0008" winPattern="7575552" payout="100" name="block_of_9" />
+		<PaytableEntry winCode="0008" winPattern="3303" payout="100" name="block_of_9" />
+		<PaytableEntry winCode="0008" winPattern="117984" payout="100" name="block_of_9" />
+		<PaytableEntry winCode="0008" winPattern="3787776" payout="100" name="block_of_9" />
+		
+		<PaytableEntry winCode="0009" winPattern="2163025" payout="40" name="letter_y" />
+		
+		<PaytableEntry winCode="0010" winPattern="924" payout="20" name="six_pack_in_corner" />
+		<PaytableEntry winCode="0010" winPattern="13080" payout="20" name="six_pack_in_corner" />
+		<PaytableEntry winCode="0010" winPattern="231" payout="20" name="six_pack_in_corner" />
+		<PaytableEntry winCode="0010" winPattern="3171" payout="20" name="six_pack_in_corner" />
+		<PaytableEntry winCode="0010" winPattern="1625088" payout="20" name="six_pack_in_corner" />
+		<PaytableEntry winCode="0010" winPattern="3784704" payout="20" name="six_pack_in_corner" />
+		<PaytableEntry winCode="0010" winPattern="12988416" payout="20" name="six_pack_in_corner" />
+		<PaytableEntry winCode="0010" winPattern="15138816" payout="20" name="six_pack_in_corner" />
+		
+		<PaytableEntry winCode="0011" winPattern="8912913" payout="16" name="4_corners" />
+		
+		<PaytableEntry winCode="0012" winPattern="71808" payout="12" name="s_diamond" />
+		
+		<PaytableEntry winCode="0013" winPattern="792" payout="8" name="stamp_in_corner" />
+		<PaytableEntry winCode="0013" winPattern="99" payout="8" name="stamp_in_corner" />
+		<PaytableEntry winCode="0013" winPattern="1622016" payout="8" name="stamp_in_corner" />
+		<PaytableEntry winCode="0013" winPattern="12976128" payout="8" name="stamp_in_corner" />
+		
+		<PaytableEntry winCode="0014" winPattern="31" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="992" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="15360" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="507904" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="16252928" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="8519745" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="557328" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="8659472" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="4329736" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="2162820" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="1083458" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0014" winPattern="541729" payout="4" name="one_line_anyway" />
+		
+		<PaytableEntry winCode="0015" winPattern="524305" payout="1" name="any_3_corners" />
+		<PaytableEntry winCode="0015" winPattern="8912897" payout="1" name="any_3_corners" />
+		<PaytableEntry winCode="0015" winPattern="8912912" payout="1" name="any_3_corners" />
+		<PaytableEntry winCode="0015" winPattern="8388625" payout="1" name="any_3_corners" />
+	</Paytable>
+</data>

@@ -1,4 +1,4 @@
-package com.luckyclover.view;
+package com.eBingo.view;
 
 import java.awt.Color;
 import java.awt.Font;
@@ -13,9 +13,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 
-import com.luckyclover.LuckyCloverModel;
+import com.eBingo.EBingoModel;
 
-public class LuckyCloverProcessView extends JPanel implements ViewInterface {
+public class EBingoProcessView extends JPanel implements ViewInterface {
 	
 	private JProgressBar pb = new JProgressBar();
 	private JLabel logLabel = new JLabel("Output Log Location");
@@ -28,12 +28,12 @@ public class LuckyCloverProcessView extends JPanel implements ViewInterface {
 	private JButton cancelButton = new JButton("X");
 	private JButton pauseButton = new JButton("||");
 	
-	private LuckyCloverModel model;
+	private EBingoModel model;
 	
 	private GridBagLayout layout;
 	private GridBagConstraints gbc;
 	
-	public LuckyCloverProcessView(LuckyCloverModel model) {
+	public EBingoProcessView(EBingoModel model) {
 		super();
 		this.model = model;
 		this.layoutView();
@@ -149,7 +149,7 @@ public class LuckyCloverProcessView extends JPanel implements ViewInterface {
 		this.cancelButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				LuckyCloverProcessView.this.model.cancel();
+				EBingoProcessView.this.model.cancel();
 			}
 		});
 		
@@ -158,9 +158,9 @@ public class LuckyCloverProcessView extends JPanel implements ViewInterface {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				if (pauseButton.getText().compareTo("||") == 0)
-					LuckyCloverProcessView.this.model.pause();
+					EBingoProcessView.this.model.pause();
 				else
-					LuckyCloverProcessView.this.model.resume();
+					EBingoProcessView.this.model.resume();
 			}
 		});
 	}

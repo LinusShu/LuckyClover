@@ -1,4 +1,4 @@
-package com.luckyclover;
+package com.eBingo;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -7,13 +7,13 @@ import java.awt.Toolkit;
 
 import javax.swing.JFrame;
 
-import com.luckyclover.view.LuckyCloverProcessView;
-import com.luckyclover.view.LuckyCloverView;
+import com.eBingo.view.EBingoProcessView;
+import com.eBingo.view.EBingoView;
 
 
 //Reads a Comma Separated Value file and creates summary data in another CSV file.
 
-public class LuckyCloverMain{
+public class EBingoMain{
 	
  
 	public static void main(String[] arg) {
@@ -31,9 +31,9 @@ public class LuckyCloverMain{
 		f.getContentPane().setBackground(Color.WHITE);
 		f.getContentPane().setLayout(new BorderLayout());
 		
-		LuckyCloverModel model = LuckyCloverModel.getInstance();
-		LuckyCloverView view = new LuckyCloverView(model);
-		LuckyCloverProcessView pview = new LuckyCloverProcessView(model);
+		EBingoModel model = EBingoModel.getInstance();
+		EBingoView view = new EBingoView(model);
+		EBingoProcessView pview = new EBingoProcessView(model);
 		
 		f.getContentPane().add(view, BorderLayout.CENTER);
 		f.getContentPane().add(pview, BorderLayout.SOUTH);

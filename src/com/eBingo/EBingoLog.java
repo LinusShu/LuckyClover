@@ -1,4 +1,4 @@
-package com.luckyclover;
+package com.eBingo;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -6,14 +6,14 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class LuckyCloverLog {
+public class EBingoLog {
 	private String filename;
 	private String filepath = "";
 	private FileOutputStream fos = null;
 	private File file;
 	public static final String newline = System.getProperty("line.separator");
 	
-	public LuckyCloverLog(String filename) {
+	public EBingoLog(String filename) {
 		this.filename = filename;
 		Date date = new Date();
 		SimpleDateFormat sft = new SimpleDateFormat("MM_dd_yyyy_HH_mm_ss");

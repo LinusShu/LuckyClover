@@ -1,4 +1,4 @@
-package com.luckyclover.database;
+package com.eBingo.database;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -9,8 +9,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
-import com.luckyclover.LuckyCloverModel.Block;
-import com.luckyclover.LuckyCloverModel.PaytableEntry;
+import com.eBingo.EBingoModel.Block;
+import com.eBingo.EBingoModel.Card;
+import com.eBingo.EBingoModel.PaytableEntry;
+import com.eBingo.EBingoModel.Result;
 
 public class Database {
 
@@ -113,7 +115,7 @@ public class Database {
 	 * @param pe: the paytable entry to be inserted
 	 * @throws SQLException
 	 */
-	public static void insertIntoTable(String tableName, PaytableEntry pe)
+	public static void insertIntoTable(String tableName, PaytableEntry pe, int hits)
 		throws SQLException {
 			tableName = tableName.toUpperCase();
 			
@@ -121,17 +123,18 @@ public class Database {
 			if(!Database.doesTableExist(tableName)) {
 				String query = "create table " + tableName 
 						+ " (ID integer NOT NULL, "
-						+ "NAME varchar(30) NOT NULL, "
-						+ "WINPATTERN bigint NOT NULL, "
-						+ "PAYOUT smallint NOT NULL)";
+						+ "NAME varchar(60) NOT NULL, "
+						+ "WINPATTERN varchar(30) NOT NULL, "
+						+ "PAYOUT integer NOT NULL, "
+						+ "HITS integer NOT NULL)";
 				
 				Database.createTable(tableName, query);
 			}
 			
 			// Add entry to the table if table already exists
 			String query = "insert into " + tableName
-					+ " (ID, NAME, WINPATTERN, PAYOUT) "
-					+ "values(?, ?, ?, ?)";
+					+ " (ID, NAME, WINPATTERN, PAYOUT, HITS) "
+					+ "values(?, ?, ?, ?, ?)";
 			
 			try {
 				if (st == null)
@@ -139,8 +142,9 @@ public class Database {
 				
 				st.setInt(1, pe.getEntryID());
 				st.setString(2, pe.getName());
-				st.setLong(3, pe.getWinPattern());
+				st.setString(3, pe.getBinaryWinPattern());
 				st.setInt(4, pe.getPayout());
+				st.setInt(5, hits);
 				
 				st.addBatch();
 				batchRequests++;
@@ -203,6 +207,122 @@ public class Database {
 		}
 	}
 	
+	public static void insertIntoTable(String tableName, Result r) throws SQLException {
+		tableName = tableName.toUpperCase();
+		
+		String balls = "";
+		String ballsQ = "";
+		String ballsI = "";
+		
+		String cards = "";
+		String cardsQ = "";
+		String cardsI = "";
+		
+		// Create the table if does not exist yet
+		if (!Database.doesTableExist(tableName)) {
+			
+			// Prepare balls query string
+			for (int i = 0; i < r.getBalls().length; i++) {
+				balls += ", BALL_" + i + " integer NOT NULL";
+				ballsI += ", BALL_" + i;
+				ballsQ += ", ?";
+			}
+			
+			// Prepare cards query string
+			for (int i = 0; i < r.getNumCards(); i++) {
+				cards += ", CARD" + i + "_ID" + " bigint NOT NULL"
+						+ ", CARD" + i + "_DOLLARWON" + " double NOT NULL"
+						+ ", CARD" + i + "_WINNAME" + " varchar(30) NOT NULL"
+						+ ", CARD" + i + "_REDSQUARES" + " integer NOT NULL"
+						+ ", CARD" + i + "_RSLOCATIONS" + " varchar(50) NOT NULL";
+				
+				cardsI += ", CARD" + i + "_ID" 
+						+ ", CARD" + i + "_DOLLARWON"
+						+ ", CARD" + i + "_WINNAME"
+						+ ", CARD" + i + "_REDSQUARES" 
+						+ ", CARD" + i + "_RSLOCATIONS";
+				
+				cardsQ += ", ?, ?, ?, ?, ?";
+				
+				for (int j = 0; j < r.getCard(i).getNumbersOnCard().length; j++) {
+					cards += ", CARD" + i + "_NUM" + j + " integer NOT NULL";
+					cardsI += ", CARD" + i + "_NUM" + j;
+					cardsQ += ", ?";
+					
+				}
+				
+			}
+			
+			String query = "create table " + tableName 
+					+ " (PLAYID bigint NOT NULL, "
+					+ "BLOCKID bigint NOT NULL, "
+					+ "NUMOFCARDS integer NOT NULL, "
+					+ "WAGER float NOT NULL, "
+					+ "TOTALWIN double NOT NULL"
+					+ balls + cards + ")";
+			
+			Database.createTable(tableName, query);
+		}
+		
+		// Insert the result if table already exists
+		String query = "insert into " + tableName
+				+ " (PLAYID, BLOCKID, NUMOFCARDS, WAGER, TOTALWIN" + ballsI + cardsI + ") "
+				+ "values(?, ?, ?, ?, ?" + ballsQ + cardsQ + ")";
+		
+		try {
+			if (st == null) 
+				st = conn.prepareStatement(query);
+			
+			st.setLong(1, r.getRecordNumber());
+			st.setLong(2, r.getBlockNumber());
+			st.setInt(3, r.getNumCards());
+			st.setFloat(4, r.getWager());
+			st.setDouble(5, r.getDollarsWon());
+			
+			int index = 6;
+			
+			for (int i = 0; i < r.getBalls().length; i++) {
+				st.setInt(index, r.getBall(i));
+				index++;
+			}
+			
+			for (int i = 0; i < r.getNumCards(); i++) {
+				Card c = r.getCard(i);
+				
+				st.setLong(index, c.getID());
+				index++;
+				
+				st.setDouble(index, c.getDollarsWon());
+				index++;
+				
+				st.setString(index, c.getWinName());
+				index++;
+				
+				st.setShort(index, c.getNumRedSquares());
+				index++;
+				
+				st.setString(index, c.getRedSquareLocations().toString());
+				index++;
+				
+				for (int j = 0; j < c.getNumbersOnCard().length; j++) {
+					st.setInt(index, c.getNumberOnCard(j));
+					index++;
+				}
+			}
+			
+			st.addBatch();
+			batchRequests++;
+			
+			if (batchRequests >= MAX_BATCH_LIMIT) {
+				batchRequests = 0;
+				st.executeBatch();
+			}
+		
+		} catch (SQLException e) {
+			throw e;
+		}
+	}
+	
 	public static void dropTable(String tableName) throws SQLException {
 		tableName = tableName.toUpperCase();
 		
@@ -242,6 +362,8 @@ public class Database {
 			} catch (SQLException e) {
 				throw e;
 			}
+		} else if (st != null) {
+			st = null;
 		}
 	}
 	

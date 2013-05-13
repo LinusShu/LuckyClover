@@ -3,6 +3,7 @@
 
 	<Paytable>
 		<!-- Paytable information
+			 Note: Make sure all win patterns are inputed as highest payout amount to lowest payout amount
 			 winPattern: [integer > 0] the decimal representation of the binary win pattern
 			 payout: [integer > 0]
 			 name: [string]

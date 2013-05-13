@@ -1,4 +1,4 @@
-package com.luckyclover.view;
+package com.eBingo.view;
 
 import java.awt.Color;
 import java.awt.GridBagConstraints;
@@ -17,9 +17,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import com.luckyclover.LuckyCloverModel;
+import com.eBingo.EBingoModel;
 
-public class LuckyCloverView extends JPanel implements ViewInterface{
+public class EBingoView extends JPanel implements ViewInterface{
 	private final String DEFAULT_CONFIG = "choose LuckyClover config file";
 	private final String DEFAULT_BLOCK = "choose LuckyClover block file";
 	
@@ -38,12 +38,12 @@ public class LuckyCloverView extends JPanel implements ViewInterface{
 	
 	private JButton runButton = new JButton("Generate!");
 	
-	private LuckyCloverModel model;
+	private EBingoModel model;
 	
 	private GridBagLayout layout;
 	private GridBagConstraints gbc;
 	
-	public LuckyCloverView(LuckyCloverModel model) {
+	public EBingoView(EBingoModel model) {
 		super();
 		this.model = model;
 		this.layoutView();
@@ -126,14 +126,14 @@ public class LuckyCloverView extends JPanel implements ViewInterface{
 				File f = new File("config/");
 				fc.setCurrentDirectory(f);
 				
-				int result = fc.showOpenDialog(LuckyCloverView.this);
+				int result = fc.showOpenDialog(EBingoView.this);
 				
 				if (result == JFileChooser.APPROVE_OPTION) {
 					File file = fc.getSelectedFile();
 					if (file.getName().endsWith(".xml")) {
-						LuckyCloverView.this.model.setConfigFile(file);
+						EBingoView.this.model.setConfigFile(file);
 					} else {
-						JOptionPane.showMessageDialog(LuckyCloverView.this, 
+						JOptionPane.showMessageDialog(EBingoView.this, 
 								"Please choose an XML file type",
 								"Bad File Type",
 								JOptionPane.ERROR_MESSAGE);
@@ -150,14 +150,14 @@ public class LuckyCloverView extends JPanel implements ViewInterface{
 				File f = new File("config/");
 				fc.setCurrentDirectory(f);
 				
-				int result = fc.showOpenDialog(LuckyCloverView.this);
+				int result = fc.showOpenDialog(EBingoView.this);
 				
 				if (result == JFileChooser.APPROVE_OPTION) {
 					File file = fc.getSelectedFile();
 					if (file.getName().endsWith(".xml")) {
-						LuckyCloverView.this.model.setBlockFile(file);
+						EBingoView.this.model.setBlockFile(file);
 					} else {
-						JOptionPane.showMessageDialog(LuckyCloverView.this, 
+						JOptionPane.showMessageDialog(EBingoView.this, 
 								"Please choose an XML file type",
 								"Bad File Type",
 								JOptionPane.ERROR_MESSAGE);
@@ -175,7 +175,7 @@ public class LuckyCloverView extends JPanel implements ViewInterface{
 			
 			@Override
 			public void focusLost(FocusEvent arg0) {
-				LuckyCloverView.this.model.setDBName(dbNameField.getText().trim());
+				EBingoView.this.model.setDBName(dbNameField.getText().trim());
 			}
 		});
 		
@@ -183,7 +183,7 @@ public class LuckyCloverView extends JPanel implements ViewInterface{
 		this.dbNameButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				LuckyCloverView.this.model.setDBName();
+				EBingoView.this.model.setDBName();
 			}
 		});
 		
@@ -191,10 +191,10 @@ public class LuckyCloverView extends JPanel implements ViewInterface{
 		this.runButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				if (LuckyCloverView.this.model.isSetupValid()) {
-					LuckyCloverView.this.model.launch();
+				if (EBingoView.this.model.isSetupValid()) {
+					EBingoView.this.model.launch();
 				} else {
-					JOptionPane.showMessageDialog(LuckyCloverView.this,
+					JOptionPane.showMessageDialog(EBingoView.this,
 							"Setup is not valid!",
 							"Bad Setup",
 							JOptionPane.ERROR_MESSAGE);

@@ -26,6 +26,9 @@ public class EBingoModel {
 	
 	public static final int MAX_REPEATS = 10000;
 	public static final int NUM_ON_CARDS = 24;
+	public enum Mode {
+		LUCKY_CLOVER, OLD_GLORY, REGULAR
+	}
 	
 	public static String LC_RESULTS_TABLE_NAME = "LuckyCLover_Results";
 	public static String LC_PAYTABLE_NAME = "LuckyCLover_Paytable";
@@ -50,6 +53,9 @@ public class EBingoModel {
 	
 	private Block currblock = null;
 	private int currblockindex = 0;
+	
+	private Mode mode = Mode.LUCKY_CLOVER;
+	private boolean genPlayResults = false;
 	
 	private BasicInfoEntry currbie = null;
 	//TODO add current "Entries" as needed
@@ -127,6 +133,20 @@ public class EBingoModel {
 		this.tablesuffix = formattedDate;
 	}
 
+	public void setMode(Mode value) {
+		this.mode = value;
+		this.UpdateViews();
+	}
+	
+	public Mode getMode() {
+		return this.mode;
+	}
+	
+	public void setGenPlayResults(boolean value) {
+		this.genPlayResults = value;
+		this.UpdateViews();
+	}
+	
 	public void setError() {
 		this.error = true;
 		this.UpdateViews();
@@ -496,37 +516,19 @@ public class EBingoModel {
 					try {
 						EBingoModel.this.log.writeLine("GENERATING RESULTS...");
 						
-						EBingoModel.this.currblock = EBingoModel.this.blocks
-								.get(EBingoModel.this.getBlockIndex());
-						
-						EBingoModel.this.currbie = new BasicInfoEntry();
-						//TODO new bunch of "Entries" here
-						
-						while (EBingoModel.this.currblock != null
-								&& !EBingoModel.this.cancelled) {
-							
-							if (!EBingoModel.this.paused) {
+						switch (EBingoModel.this.mode) {
+							case LUCKY_CLOVER:
+								doLuckyCloverMode();
+								break;
 								
-								Result r = simulator.generateResults();
-							
-								if (r != null) {
-									r.setRecordNumber(EBingoModel.this.currplayed + 1);
-									r.setBlockNumber(EBingoModel.this.currblock.getBlockNum());
-									r.setWager(EBingoModel.this.currblock.getWager());	
-									
-									EBingoModel.this.currbie.updateBIE(r);
-									//TODO update bunch of "Entries" here
-									
-									
+							case OLD_GLORY:
+								doOldGloryMode();
+								break;
 								
-									Database.insertIntoTable(EBingoModel.this.getLCResultsDBTableName(), r);
-								
-									EBingoModel.this.incrementCurrPlay();
-								
-								} // If result generated is valid //TODO main mechanics here
-							} // If paused
-						} // If every block is done
-						
+							case REGULAR:
+								doRegularMode();
+								break;
+						}	
 						
 					} catch (Exception e) {
 						EBingoModel.this.stop();
@@ -550,6 +552,78 @@ public class EBingoModel {
 		t.setPriority(Thread.MAX_PRIORITY);
 		t.start();
 		
+	}
+	
+	private void doLuckyCloverMode() throws Exception {
+		EBingoModel.this.currblock = EBingoModel.this.blocks
+				.get(EBingoModel.this.getBlockIndex());
+		
+		EBingoModel.this.currbie = new BasicInfoEntry();
+		//TODO new bunch of "Entries" here
+		
+		while (EBingoModel.this.currblock != null
+				&& !EBingoModel.this.cancelled) {
+			
+			if (!EBingoModel.this.paused) {
+				
+				Result r = simulator.generateResults();
+			
+				if (r != null) {
+					r.setRecordNumber(EBingoModel.this.currplayed + 1);
+					r.setBlockNumber(EBingoModel.this.currblock.getBlockNum());
+					r.setWager(EBingoModel.this.currblock.getWager());	
+					
+					
+					EBingoModel.this.currbie.updateBIE(r);
+					//TODO update bunch of "Entries" here
+					
+					if (EBingoModel.this.genPlayResults) 
+						Database.insertIntoTable(EBingoModel.this.getLCResultsDBTableName(), r);
+				
+					EBingoModel.this.incrementCurrPlay();
+					
+				
+				} // If result generated is valid 
+			} // If paused
+		} // If every block is done
+	}
+	
+	private void doOldGloryMode() throws Exception {
+		
+	}
+	
+	private void doRegularMode() throws Exception {
+		EBingoModel.this.currblock = EBingoModel.this.blocks
+				.get(EBingoModel.this.getBlockIndex());
+		
+		EBingoModel.this.currbie = new BasicInfoEntry();
+		//TODO new bunch of "Entries" here
+		
+		while (EBingoModel.this.currblock != null
+				&& !EBingoModel.this.cancelled) {
+			
+			if (!EBingoModel.this.paused) {
+				
+				Result r = simulator.generateRegularResults();
+			
+				if (r != null) {
+					r.setRecordNumber(EBingoModel.this.currplayed + 1);
+					r.setBlockNumber(EBingoModel.this.currblock.getBlockNum());
+					r.setWager(EBingoModel.this.currblock.getWager());	
+					
+					
+					EBingoModel.this.currbie.updateBIE(r);
+					//TODO update bunch of "Entries" here
+					
+					if (EBingoModel.this.genPlayResults) 
+						Database.insertIntoTable(EBingoModel.this.getLCResultsDBTableName(), r);
+				
+					EBingoModel.this.incrementCurrPlay();
+					
+				
+				} // If result generated is valid 
+			} // If paused
+		} // If every block is done
 	}
 	
 	/**
@@ -601,7 +675,6 @@ public class EBingoModel {
 					+ "Message: " + e.getMessage());
 		}
 		
-		
 		// Close DB Connection
 		try {
 			Database.shutdownConnection();
@@ -628,6 +701,8 @@ public class EBingoModel {
 				currblock.setBlockComplete(true);
 				currblock.setRepeatComplete(true);
 				
+				currbie.flushBIE();
+				
 				// If there are more blocks
 				if (currblockindex < blocks.size()) {
 					currblock = blocks.get(currblockindex);
@@ -649,6 +724,7 @@ public class EBingoModel {
 		private Result r;
 		private int[] balls = new int[NUM_ON_CARDS];
 		private long cardID = 0;
+		private List<Integer> winnerIndices = new ArrayList<Integer>();
 	    
 		
 		private List<Integer> array1_15 = new ArrayList<Integer>(15);
@@ -656,11 +732,12 @@ public class EBingoModel {
 		private List<Integer> array31_45 = new ArrayList<Integer>(15);
 		private List<Integer> array46_60 = new ArrayList<Integer>(15);
 		private List<Integer> array61_75 = new ArrayList<Integer>(15);
+		private List<Integer> array1_75 = new ArrayList<Integer>(75);
 		
 		public Simulator(EBingoModel model) {
 			this.model = model;
 			
-			// Initialize the "final" Lists
+			// Initialize the Lists
 			for (int i = 0; i < 15; i++) {
 				array1_15.add(i + 1);
 				array16_30.add(i + 16);
@@ -668,6 +745,9 @@ public class EBingoModel {
 				array46_60.add(i + 46);
 				array61_75.add(i + 61);
 			}
+			
+			for (int i = 0; i < 75; i++) 
+				array1_75.add(i + 1);
 		}
 		
 		public Result generateResults() {
@@ -715,6 +795,61 @@ public class EBingoModel {
 			return r;
 		}
 		
+		/**
+		 * The method called only in Regular Bingo mode to generate a Result
+		 */
+		private Result generateRegularResults() {
+			int currBallDrawn = 0;
+			
+			if (model.currblock != null) {
+				r = new Result(model.currblock.getNumCards());
+				r.setBlockNumber(model.currblock.getBlockNum());
+				r.setRecordNumber(model.currplayed);
+			}
+			
+			// Generate all the cards first
+			generateCards();
+			
+			while (currBallDrawn < NUM_ON_CARDS && winnerIndices.size() == 0) {
+				// Generate 1 ball at a time
+				generateRegularBalls(currBallDrawn);
+				currBallDrawn++;
+				
+				// Only calculate payout after 4 balls are drawn
+				if (balls[3] != 0) {
+					// Loop through all the cards 
+					for (int i = 0; i < r.numcards; i++) {
+						int outcome = generateOutCome(r.getCard(i));
+						
+						calculatePayout(outcome, i);
+						
+						// If the card is a winning card
+						if (r.getCard(i).isWin()) {
+							r.incrementNumWinningCards();
+							r.addCreditsWon(r.getCard(i).getCreditsWon()); 
+							
+							// Add the winning card index to the List
+							winnerIndices.add(i);
+						} 
+					}
+				}
+				
+			}
+			
+			r.setBalls(balls);
+			resetRegular();
+			return r;
+		}
+
+		private void generateRegularBalls(int index) {
+			// TODO drawn all 75 balls instead of just 24
+			if (balls[0] == 0) {
+				Collections.shuffle(array1_75);
+				balls[index] = array1_75.get(index);
+			} else if (index < NUM_ON_CARDS) {
+				balls[index] = array1_75.get(index);
+			}
+		}
 		
 		private void generateBalls() {
 			// Generate the ball numbers under "B"
@@ -797,7 +932,9 @@ public class EBingoModel {
 		private int generateOutCome(Card card) {
 			int outcome = 0;
 			
-			for (int i = 0; i < NUM_ON_CARDS; i++) {       
+			// Loop through balls
+			for (int i = 0; i < NUM_ON_CARDS && balls[i] != 0; i++) {
+				// Loop through numbers on cards
 				for (int j = 0; j < NUM_ON_CARDS; j++) {
 					if (balls[i] == card.getNumberOnCard(j)){
 						double tmp = Math.pow(2,(23-j));
@@ -842,8 +979,8 @@ public class EBingoModel {
 						r.getCard(cardindex).setWinName(EBingoModel.this.paytable.get(i).getName());
 					}
 				
-				// If the outcome has a red square		
-				} else if (num1sintmp == num1sinwin - 1) {
+				// Find the red square locations if the outcome has a red square (skip if in Regular Bingo mode)		
+				} else if (model.mode != Mode.REGULAR && num1sintmp == num1sinwin - 1) {
 					findRedSquares(cardindex, tmp, winpattern);
 				}
 			}
@@ -906,12 +1043,18 @@ public class EBingoModel {
 		    }
 		}
 		
+		private void resetRegular() {
+			balls = new int[NUM_ON_CARDS];
+			winnerIndices.clear();
+		}
+		
 		public void reset() {
 			if (model.currblock != null)
 				r = new Result(model.currblock.getNumCards());
 			
 			this.cardID = 0;
 		}
+		
 	}
 
 	
@@ -1089,7 +1232,7 @@ public class EBingoModel {
 			return this.blockcomplete;
 		}
 		
-		public boolean getRepeatComplet() {
+		public boolean getRepeatComplete() {
 			return this.repeatcomplete;
 		}
 		
@@ -1333,6 +1476,10 @@ public class EBingoModel {
 	}
 	
 	public class BasicInfoEntry {
+		private long blockID = 0;
+		private int numplays = 0;
+		private int numcards = 0;
+		
 		private int wins = 0;
 		private int losses = 0;
 		private int ldws = 0;
@@ -1340,6 +1487,14 @@ public class EBingoModel {
 		private int multiwins = 0;
 		private int redsquares = 0;
 		private int flashingRedSquares = 0;
+		
+		public BasicInfoEntry() {
+			if (EBingoModel.this.currblock != null) {
+				this.blockID = EBingoModel.this.currblock.getBlockNum();
+				this.numplays = EBingoModel.this.currblock.getNumPlays();
+				this.numcards = EBingoModel.this.currblock.getNumCards();
+			}
+		}
 		
 		public int getWins() {
 			return this.wins;
@@ -1367,6 +1522,18 @@ public class EBingoModel {
 		
 		public int getFlashingRedSquares() {
 			return this.flashingRedSquares;
+		}
+		
+		public long getBlockID() {
+			return this.blockID;
+		}
+		
+		public int getNumPlays() {
+			return this.numplays;
+		}
+		
+		public int getNumCards() {
+			return this.numcards;
 		}
 		
 		public void incrementWins() {
@@ -1421,6 +1588,8 @@ public class EBingoModel {
 				if (numwinningcards > 1) {
 					this.incrementMultiWins();
 				}
+			} else {
+				this.incrementLosses();
 			}
 			
 			// Add red flashing squares
@@ -1428,6 +1597,18 @@ public class EBingoModel {
 				this.addFlashingRedSquares(r.getRedSquares());
 			}
 			this.addRedSquares(r.getRedSquares());
+		}
+		
+		public void flushBIE() {
+			try {
+				Database.flushBatch();
+				Database.insertIntoTable(getLCBasicInfoDBname(), currbie, blocks.size());
+			} catch (Exception e) {
+				log.writeLine("Inserting BasicInfoEntry encountered problem: " + e.getMessage());
+				e.printStackTrace();
+			} finally {
+				EBingoModel.this.currbie = new BasicInfoEntry();
+			}
 		}
 	}
 	

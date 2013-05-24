@@ -9,6 +9,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
+import com.eBingo.EBingoModel;
+import com.eBingo.EBingoModel.BasicInfoEntry;
 import com.eBingo.EBingoModel.Block;
 import com.eBingo.EBingoModel.Card;
 import com.eBingo.EBingoModel.PaytableEntry;
@@ -16,7 +18,7 @@ import com.eBingo.EBingoModel.Result;
 
 public class Database {
 
-	public static String DEFAULT_DB_NAME = "LuckyCloverResDB";
+	public static String DEFAULT_DB_NAME = "EBingoResDB";
 	
 	private static String dbName = DEFAULT_DB_NAME;
 	private static String URL = "jdbc:derby:" + dbName + ";create=true";
@@ -69,9 +71,10 @@ public class Database {
 	public static void shutdownConnection() throws SQLException {
 		try {
 			if (st != null) {
-				st.close();
 				st = null;
+				st.close();
 			}
+			
 			conn.commit();
 			DriverManager.getConnection(URL_SHUTDOWN);
 		} catch (SQLException e) {
@@ -236,6 +239,7 @@ public class Database {
 						+ ", CARD" + i + "_REDSQUARES" + " integer NOT NULL"
 						+ ", CARD" + i + "_RSLOCATIONS" + " varchar(50) NOT NULL";
 				
+				
 				cardsI += ", CARD" + i + "_ID" 
 						+ ", CARD" + i + "_DOLLARWON"
 						+ ", CARD" + i + "_WINNAME"
@@ -321,6 +325,60 @@ public class Database {
 		} catch (SQLException e) {
 			throw e;
 		}
+	}
+	
+	public static void insertIntoTable(String tableName, BasicInfoEntry bie, int blocksize) 
+			throws SQLException {
+		tableName = tableName.toUpperCase();
+		
+		if (!Database.doesTableExist(tableName)) {
+			String query = "create table " + tableName 
+					+ " (ID bigint NOT NULL, "
+					+ "PLAYS integer NOT NULL, "
+					+ "CARDS integer NOT NULL, "
+					+ "WINS integer NOT NULL, "
+					+ "LOSSES integer NOT NULL, " 
+					+ "LDWS integer NOT NULL, "
+					+ "PUSHES integer NOT NULL, " 
+					+ "MULTIWINS integer NOT NULL, "
+					+ "REDSQUARES integer NOT NULL, "
+					+ "FLASHING_REDSQUARES integer NOT NULL)";
+
+			Database.createTable(tableName, query);
+		}
+		
+		// Add entry to the table if table already exists
+		String query = "insert into " + tableName
+				+ " (ID, PLAYS, CARDS, WINS, LOSSES, LDWS, PUSHES, MULTIWINS, REDSQUARES, FLASHING_REDSQUARES) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		
+		try {
+			if (st == null)
+				st = conn.prepareStatement(query);
+			
+			st.setLong(1, bie.getBlockID());
+			st.setInt(2, bie.getNumPlays());
+			st.setInt(3, bie.getNumCards());
+			st.setInt(4, bie.getWins());
+			st.setInt(5, bie.getLosses());
+			st.setInt(6, bie.getLDWs());
+			st.setInt(7, bie.getPushes());
+			st.setInt(8, bie.getMultiWins());
+			st.setInt(9, bie.getRedSquares());
+			st.setInt(10, bie.getFlashingRedSquares());
+			
+			st.addBatch();
+			batchRequests++;
+			
+			if (batchRequests >= blocksize) {
+				batchRequests = 0;
+				st.executeBatch();
+			}
+			
+		} catch (SQLException e) {
+			throw e;
+		}
+		
 	}
 	
 	public static void dropTable(String tableName) throws SQLException {

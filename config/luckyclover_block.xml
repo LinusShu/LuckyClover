@@ -3,10 +3,10 @@
 	<blocks>
 		<!-- Block Information
 			 numplays: [integer > 0]
-			 numcards: [small integer > 0]
+			 numcards: [integer > 0]
 			 wager: [double > 0]
 			 repeat: [integer > 0 && < 10000]
 		 -->
-		 <block numplays="1000000" numcards="1" wager="0.25" repeat="1"/>
+		 <block numplays="10000" numcards="4" wager="0.25" repeat="1"/>
 	</blocks>
 </data>

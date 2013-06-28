@@ -1,12 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <data>
 	<blocks>
-		<!-- Block Information
+		<!-- Block Information for LuckyClover mode
 			 numplays: [integer > 0]
 			 numcards: [integer > 0]
 			 wager: [double > 0]
 			 repeat: [integer > 0 && < 10000]
 		 -->
-		 <block numplays="10000" numcards="4" wager="0.25" repeat="1"/>
+		 <!-- Blocks for testing hit freq. 
+		 <block numplays="250000" numcards="4" wager="0.25" repeat="1"/> 
+		 -->
+		 
+		 <!-- Blocks for percent losers table -->
+		 <block numplays="1000" numcards="1" wager="1" repeat="10000"/>
+		 <block numplays="1000" numcards="4" wager="0.25" repeat="10000"/>
+		 
+		 <block numplays="2000" numcards="1" wager="1" repeat="10000"/>
+		 <block numplays="2000" numcards="4" wager="0.25" repeat="10000"/>
+		 
+		 <block numplays="4000" numcards="1" wager="1" repeat="10000"/>
+		 <block numplays="4000" numcards="4" wager="0.25" repeat="10000"/>
+		 
+		 <block numplays="10000" numcards="1" wager="1" repeat="10000"/>
+		 <block numplays="10000" numcards="4" wager="0.25" repeat="10000"/>
+		 
+		 <block numplays="25000" numcards="1" wager="1" repeat="10000"/>
+		 <block numplays="25000" numcards="4" wager="0.25" repeat="10000"/>
+		 
+		 <block numplays="50000" numcards="1" wager="1" repeat="10000"/>
+		 <block numplays="50000" numcards="4" wager="0.25" repeat="10000"/>
+		 
 	</blocks>
 </data>

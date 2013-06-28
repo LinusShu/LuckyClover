@@ -75,10 +75,10 @@ public class EBingoView extends JPanel implements ViewInterface{
 		this.fc.setFileFilter(new XMLFileFilter());
 		this.configFileField.setText(this.DEFAULT_CONFIG);
 		this.configFileField.setEditable(false);
-		this.configFileField.setBackground(Color.LIGHT_GRAY);
+		this.configFileField.setBackground(Color.WHITE);
 		this.blockFileField.setText(this.DEFAULT_BLOCK);
 		this.blockFileField.setEditable(false);
-		this.blockFileField.setBackground(Color.LIGHT_GRAY);
+		this.blockFileField.setBackground(Color.WHITE);
 		
 		// Group up mode radio buttons
 		modeGroup.add(lcmodeButton);

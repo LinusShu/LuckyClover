@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+	<blocks>
+		<!-- Block Information for Regular Bingo mode
+		     numplays: [integer > 0]; number of games played
+		     numcards: [integer > 0]; number of cards purchased by each person for the game
+		     numplayers: [integer > 0]; number of players playing the game
+		     wager: [float > 0]; price of each card
+		     repeat: [integer > 0 && <= 10,000]; number of time the simulation is repeated
+		-->     
+		    
+		     <block numplays="1000" numcards="6" numplayers="0" wager="0.25" repeat="1" />
+		 
+	</blocks>
+</data>

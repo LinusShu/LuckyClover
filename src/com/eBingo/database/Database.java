@@ -8,17 +8,24 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-import com.eBingo.EBingoModel;
 import com.eBingo.EBingoModel.BasicInfoEntry;
 import com.eBingo.EBingoModel.Block;
 import com.eBingo.EBingoModel.Card;
+import com.eBingo.EBingoModel.Mode;
 import com.eBingo.EBingoModel.PaytableEntry;
+import com.eBingo.EBingoModel.PercentLosersEntry;
+import com.eBingo.EBingoModel.Player;
+import com.eBingo.EBingoModel.Range;
+import com.eBingo.EBingoModel.RegularResult;
 import com.eBingo.EBingoModel.Result;
 
 public class Database {
 
 	public static String DEFAULT_DB_NAME = "EBingoResDB";
+	private static Mode mode;
 	
 	private static String dbName = DEFAULT_DB_NAME;
 	private static String URL = "jdbc:derby:" + dbName + ";create=true";
@@ -26,9 +33,14 @@ public class Database {
 	private static final int MAX_BATCH_LIMIT = 1000;
 	
 	private static Connection conn = null;
-	private static ArrayList<String> listOfTables;
+	private static List<String> listOfTables;
 	private static int batchRequests = 0;
 	private static PreparedStatement st = null;
+	
+	
+	public static void setMode(Mode m) {
+		mode = m;
+	}
 	
 	public static void setDBName(String name) {
 		Database.dbName = name;
@@ -327,6 +339,105 @@ public class Database {
 		}
 	}
 	
+	public static void insertIntoTable(String tableName, RegularResult rr) throws SQLException {
+		tableName = tableName.toUpperCase();
+		
+		String players = "";
+		String playersQ = "";
+		String playersI = "";
+		
+		// Create the table if does not exist yet
+		if (!Database.doesTableExist(tableName)) {
+			
+			// Prepare cards query string
+			for (int i = 0; i < rr.getNumPlayers(); i++) {
+				
+				players += ", P" + i + "_WON double NOT NULL"
+						+ ", P" + i + "_CARDSWON varchar(30) NOT NULL"
+						+ ", P" + i + "_WINNAMES varchar(50) NOT NULL";
+				
+				playersI += ", P" + i + "_WON"
+						+ ", P" + i + "_CARDSWON"
+						+ ", P" + i + "_WINNAMES";
+				
+				playersQ += ", ?, ?, ?";
+				
+				for (int j = 0; j < rr.getNumCards(); j++ ) {
+						
+					players	+= ", P" + i + "_CARD" + j + "_NUMS varchar(100) NOT NULL";
+					
+					
+					playersI += ", P" + i + "_CARD" + j + "_NUMS";
+					
+					playersQ += ", ?";
+				}
+				
+			}
+			
+			String query = "create table " + tableName 
+					+ " (PLAYID bigint NOT NULL, "
+					+ "BLOCKID bigint NOT NULL, "
+					+ "NUMOFCARDS integer NOT NULL, "
+					+ "NUMOFPLAYERS integer NOT NULL, "
+					+ "WAGER float NOT NULL, "
+					+ "BALLS varchar(300) NOT NULL, "
+					+ "PLAYERWON varchar(50) NOT NULL"
+					+ players + ") ";
+			
+			Database.createTable(tableName, query);
+		}
+		
+		// Insert the result if table already exists
+		String query = "insert into " + tableName
+				+ " (PLAYID, BLOCKID, NUMOFCARDS, NUMOFPLAYERS, WAGER, BALLS, PLAYERWON" + playersI + ") "
+				+ "values(?, ?, ?, ?, ?, ?, ?" + playersQ + ")";
+		
+		try {
+			if (st == null) 
+				st = conn.prepareStatement(query);
+			
+			st.setLong(1, rr.getRecordNum());
+			st.setLong(2, rr.getBlockNum());
+			st.setInt(3, rr.getNumCards());
+			st.setInt(4, rr.getNumPlayers());
+			st.setFloat(5, rr.getWager());
+			st.setString(6, Arrays.toString(rr.getBalls()));
+			st.setString(7, rr.getPlayersWon().toString());
+			
+			int index = 8;
+			
+			for (int i = 0; i < rr.getNumPlayers(); i++) {
+				Player p = rr.getPlayer(i);
+				
+				st.setDouble(index, p.getDollarWon());
+				index++;
+				
+				st.setString(index, p.getCardsWon().toString());
+				index++;
+				
+				st.setString(index, p.getWinNames().toString());
+				index++;
+			
+				for (int j = 0; j < p.getNumCards(); j++) {
+					st.setString(index, Arrays.toString(p.getCard(j).getNumbersOnCard()));
+					index++;
+				}
+			
+			}
+			
+			st.addBatch();
+			batchRequests++;
+			
+			if (batchRequests >= MAX_BATCH_LIMIT) {
+				batchRequests = 0;
+				st.executeBatch();
+			}
+		
+		} catch (SQLException e) {
+			throw e;
+		}
+	}
+	
 	public static void insertIntoTable(String tableName, BasicInfoEntry bie, int blocksize) 
 			throws SQLException {
 		tableName = tableName.toUpperCase();
@@ -379,6 +490,93 @@ public class Database {
 			throw e;
 		}
 		
+	}
+	
+	public static void insertIntoTable(String tableName, PercentLosersEntry ple, int blocksize)
+			throws SQLException {
+		tableName = tableName.toUpperCase();
+		
+		String losspercentages = "";
+		String losspercentagesI = "";
+		String losspercentagesQ = "";
+		
+		for (int i = 0; i < ple.getLossPercentages().size(); i++) {
+			Range r = ple.getRange(i);
+			
+			if (i < 4) {
+				losspercentages += ", LOSS" + (int)(r.high * 100) + "_" + (int)(r.low * 100) + " integer NOT NULL";
+				losspercentagesI += ", LOSS" + (int)(r.high * 100) + "_" + (int)(r.low * 100);
+				
+			} else if (i >= 4 && i < ple.getLossPercentages().size() - 1) {
+				losspercentages += ", WIN" + (int)(r.high * -100) + "_" + (int)(r.low * -100) + " integer NOT NULL";
+				losspercentagesI += ", WIN" + (int)(r.high * -100) + "_" + (int)(r.low * -100);
+				
+			} else {
+				losspercentages += ", WIN900UP integer NOT NULL";
+				losspercentagesI += ", WIN900UP";
+			}
+			
+			losspercentagesQ += ",?";
+		}
+		
+		if (!Database.doesTableExist(tableName)) {
+			Statement st = null;
+			String query = "create table " + tableName 
+					+ " (ID bigint NOT NULL, "
+					+ "PLAYS integer NOT NULL, "
+					+ "CARDS integer NOT NULL, "
+					+ "WINS integer NOT NULL, "
+					+ "LDWS integer NOT NULL, " 
+					+ "LOSSES integer NOT NULL, "
+					+ "AVGLP integer NOT NULL, " 
+					+ "MEDIANLP integer NOT NULL, "
+					+ "LPSD integer NOT NULL, "
+					+ "AVGRS integer NOT NULL, "
+					+ "MEDIANRS integer NOT NULL, "
+					+ "RSSD integer NOT NULL"
+					+ losspercentages + ")";
+
+			Database.createTable(tableName, query);
+		}
+		
+		// Otherwise, add the LossPercentageEntry to the table
+		String query = "insert into " + tableName
+				+ "(ID, PLAYS, CARDS, WINS, LDWS, LOSSES, AVGLP, MEDIANLP, LPSD, AVGRS, MEDIANRS, RSSD" 
+				+ losspercentagesI + ") "
+				+ "values(?,?,?,?,?,?,?,?,?,?,?,?" + losspercentagesQ + ")";
+				
+				try {
+					if (st == null)
+						st = conn.prepareStatement(query);
+					
+					st.setLong(1, ple.getID());
+					st.setInt(2, ple.getNumPlays());
+					st.setInt(3, ple.getNumCards());
+					st.setInt(4, ple.getWins());
+					st.setInt(5, ple.getLDWs());
+					st.setInt(6, ple.getLosses());
+					st.setInt(7, (int)ple.getAvgLossBalance());
+					st.setInt(8, (int)ple.getMedianLossBalance());
+					st.setInt(9, (int)ple.getLossBalanceSD());
+					st.setInt(10, ple.getAvgRedSquares());
+					st.setInt(11, ple.getMedianRedSquares());
+					st.setInt(12, ple.getRedSquaresSD());
+					
+					int index = 12;
+					for (int i = 0; i < ple.getLossPercentages().size(); i++) {
+						st.setInt(++index, ple.getLossPercentage(i));
+					}
+					
+					st.addBatch();
+					batchRequests++;
+					
+					if (batchRequests >= blocksize) {
+						st.executeBatch();
+						batchRequests = 0;
+					}
+				} catch (SQLException e) {
+					throw e;
+				}
 	}
 	
 	public static void dropTable(String tableName) throws SQLException {

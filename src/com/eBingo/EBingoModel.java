@@ -41,6 +41,7 @@ public class EBingoModel {
 	public static String RB_BLOCKS_TABLE_NAME = "RegularBingo_Blocks";
 	
 	public static String PERCENT_LOSERS_TABLE_NAME = "PercentLosers";
+	public static String GAMBLERS_RUIN_TABLE_NAME = "GamblersRuin";
 	
 	private File configFile;
 	private File blockFile;
@@ -60,22 +61,26 @@ public class EBingoModel {
 	
 	private Block currblock = null;
 	private int currblockindex = 0;
+	private boolean repeatcomplete = false;
+	private boolean blockcomplete = false;
 	
 	private Mode mode = Mode.LUCKY_CLOVER;
 	private boolean genPlayResults = false;
+	private boolean genGambersRuin = false;
 	
 	private BasicInfoEntry currbie = null;
 	private PercentLosersEntry currple = null;
+	private GamblersRuinEntry currgre = null;
 	//TODO add current "Entries" as needed
 	
-	private ArrayList<ViewInterface> views = new ArrayList<ViewInterface>();
-	private ArrayList<String> errorLog = new ArrayList<String>();
-	private ArrayList<String> warningLog = new ArrayList<String>();
-	private ArrayList<String> errorLog2 = new ArrayList<String>();
-	private ArrayList<String> warningLog2 = new ArrayList<String>();
+	private List<ViewInterface> views = new ArrayList<ViewInterface>();
+	private List<String> errorLog = new ArrayList<String>();
+	private List<String> warningLog = new ArrayList<String>();
+	private List<String> errorLog2 = new ArrayList<String>();
+	private List<String> warningLog2 = new ArrayList<String>();
 	
-	private ArrayList<PaytableEntry> paytable = new ArrayList<PaytableEntry>();
-	private ArrayList<Block> blocks = new ArrayList<Block>();
+	private List<PaytableEntry> paytable = new ArrayList<PaytableEntry>();
+	private List<Block> blocks = new ArrayList<Block>();
 	private List<Integer> hittable = new ArrayList<Integer>();
 	
 	private EBingoModel() {
@@ -155,6 +160,15 @@ public class EBingoModel {
 		this.UpdateViews();
 	}
 	
+	public void setGenGamblersRuin(boolean value) {
+		this.genGambersRuin = value;
+		this.UpdateViews();
+	}
+	
+	public boolean getGenGamblersRuin() {
+		return this.genGambersRuin;
+	}
+	
 	public void setError() {
 		this.error = true;
 		this.UpdateViews();
@@ -204,6 +218,10 @@ public class EBingoModel {
 		return this.buildDBTableName(PERCENT_LOSERS_TABLE_NAME);
 	}
 	
+	public String getGamblersRuinDBname() {
+		return this.buildDBTableName(GAMBLERS_RUIN_TABLE_NAME);
+	}
+	
 	//TODO add getDBname methods as needed
 	
 	public File getConfigFile() {
@@ -224,6 +242,16 @@ public class EBingoModel {
 	
 	public int getCurrPlayed() {
 		return this.currplayed;
+	}
+	
+	public double getCurrBalance() {
+		if (currblock != null)
+			return this.currblock.getCurrBalance();
+		else return 0;
+	}
+	
+	public List<Block> getBlocks() {
+		return this.blocks;
 	}
 	
 	public Block getCurrBlock() {
@@ -333,6 +361,7 @@ public class EBingoModel {
 		
 		this.currbie = null;
 		this.currple = null;
+		this.currgre = null;
 		
 		this.paytable.clear();
 		this.blocks.clear();
@@ -452,78 +481,117 @@ public class EBingoModel {
 	}
 	
 	private void readBlocks(Document doc) {
-		NodeList list = doc.getElementsByTagName("block");
-		
-		for (int i = 0; i < list.getLength(); i++) {
-			Node node = list.item(i);
-			if (node.getNodeType() == Node.ELEMENT_NODE) {
-				Element e = (Element) node;
-				
-				// If in Lucky Clover mode
-				if (this.mode == Mode.LUCKY_CLOVER) {
-					int numplays = -1;
+		// If simulating Gambler's Ruin
+		if (this.genGambersRuin) {
+			NodeList list = doc.getElementsByTagName("grblock");
+			
+			for (int i = 0; i < list.getLength(); i++) {
+				Node node = list.item(i);
+				if (node.getNodeType() == Node.ELEMENT_NODE) {
+					Element e = (Element) node;
+					
 					int numcards = -1;
 					float wager = -1;
+					double bankroll = -1;
 					int repeat = -1;
-				
+					
 					try {
-						numplays = Integer.parseInt(e.getAttribute("numplays"));
 						numcards = Integer.parseInt(e.getAttribute("numcards"));
 						wager = Float.parseFloat(e.getAttribute("wager"));
+						bankroll = Double.parseDouble(e.getAttribute("bankroll"));
 						repeat = Integer.parseInt(e.getAttribute("repeat"));
 					} catch (NumberFormatException nfe) {
 						this.addErrorToLog2("Block[" + Integer.toString(i)
-								+ "]: Invalid vaule(s) for this block.");
-					}
-				
-					if (numplays > 0 && numcards > 0 && wager > 0 && repeat > 0 && repeat <= MAX_REPEATS) {
-						Block b = new Block();
-						b.setNumPlays(numplays);
-						b.setNumCards(numcards);
-						b.setWager(wager);
-						b.setRepeat(repeat);
-						b.setBlockNum(i + 1);
-						this.blocks.add(b);
-					} else {
-						this.addErrorToLog2("Block[" + Integer.toString(i)
-								+ "]: All attributes must be greater than 0.");
+								+ "]: Invalid vallue(s) for this block.");
 					}
 					
-				// If in regular mode		
-				} else if (this.mode == Mode.REGULAR) {
-					int numplays = -1;
-					int numcards = -1;
-					int numplayers = -1;
-					float wager = -1;
-					int repeat = -1;
-					RegularBlock rb = new RegularBlock();
-				
-					try {
-						numplays = Integer.parseInt(e.getAttribute("numplays"));
-						numcards = Integer.parseInt(e.getAttribute("numcards"));
-						numplayers = Integer.parseInt(e.getAttribute("numplayers"));
-						wager = Float.parseFloat(e.getAttribute("wager"));
-						repeat = Integer.parseInt(e.getAttribute("repeat"));
-					} catch (NumberFormatException nfe) {
-						this.addErrorToLog2("Block[" + Integer.toString(i)
-								+ "]: Invalid vaule(s) for this block.");
+					if (numcards > 0 && wager > 0 && bankroll > 0 && 
+							repeat > 0 && repeat <= MAX_REPEATS) {
+						Block b = new GRBlock();
+						b.setNumCards(numcards);
+						b.setWager(wager);
+						b.setBankroll(bankroll);
+						b.setRepeat(repeat);
+						b.setBlockNum(i + 1);
+						b.setCurrBalance(bankroll);
+						this.blocks.add(b);
 					}
+				}
+			}
+			
+		} else {
+			
+			NodeList list = doc.getElementsByTagName("block");
+		
+			for (int i = 0; i < list.getLength(); i++) {
+				Node node = list.item(i);
+				if (node.getNodeType() == Node.ELEMENT_NODE) {
+					Element e = (Element) node;
 				
-					if (numplays > 0 && numcards > 0 && numplayers > 0 
-							&& wager > 0 && repeat > 0 && repeat <= MAX_REPEATS) {
-						
-						
-						rb.setNumPlays(numplays);
-						rb.setNumCards(numcards);
-						rb.setNumplayers(numplayers);
-						rb.setWager(wager);
-						rb.setRepeat(repeat);
-						rb.setBlockNum(i + 1);
-						rb.calculatePayBack();
-						this.blocks.add(rb);
-					} else {
-						this.addErrorToLog2("Block[" + Integer.toString(i)
-								+ "]: All attributes must be greater than 0.");
+					// If in Lucky Clover mode
+					if (this.mode == Mode.LUCKY_CLOVER) {
+						int numplays = -1;
+						int numcards = -1;
+						float wager = -1;
+						int repeat = -1;
+					
+						try {
+							numplays = Integer.parseInt(e.getAttribute("numplays"));
+							numcards = Integer.parseInt(e.getAttribute("numcards"));
+							wager = Float.parseFloat(e.getAttribute("wager"));
+							repeat = Integer.parseInt(e.getAttribute("repeat"));
+						} catch (NumberFormatException nfe) {
+							this.addErrorToLog2("Block[" + Integer.toString(i)
+									+ "]: Invalid value(s) for this block.");
+						}
+					
+						if (numplays > 0 && numcards > 0 && wager > 0 && repeat > 0 && repeat <= MAX_REPEATS) {
+							Block b = new Block();
+							b.setNumPlays(numplays);
+							b.setNumCards(numcards);
+							b.setWager(wager);
+							b.setRepeat(repeat);
+							b.setBlockNum(i + 1);
+							this.blocks.add(b);
+						} else {
+							this.addErrorToLog2("Block[" + Integer.toString(i)
+									+ "]: All attributes must be greater than 0.");
+						}
+					
+					// If in regular mode		
+					} else if (this.mode == Mode.REGULAR) {
+						int numplays = -1;
+						int numcards = -1;
+						int numplayers = -1;
+						float wager = -1;
+						int repeat = -1;
+						RegularBlock rb = new RegularBlock();
+					
+						try {
+							numplays = Integer.parseInt(e.getAttribute("numplays"));
+							numcards = Integer.parseInt(e.getAttribute("numcards"));
+							numplayers = Integer.parseInt(e.getAttribute("numplayers"));
+							wager = Float.parseFloat(e.getAttribute("wager"));
+							repeat = Integer.parseInt(e.getAttribute("repeat"));
+						} catch (NumberFormatException nfe) {
+							this.addErrorToLog2("Block[" + Integer.toString(i)
+									+ "]: Invalid vaule(s) for this block.");
+						}
+					
+						if (numplays > 0 && numcards > 0 && numplayers > 0 
+								&& wager > 0 && repeat > 0 && repeat <= MAX_REPEATS) {	
+							rb.setNumPlays(numplays);
+							rb.setNumCards(numcards);
+							rb.setNumplayers(numplayers);
+							rb.setWager(wager);
+							rb.setRepeat(repeat);
+							rb.setBlockNum(i + 1);
+							rb.calculatePayBack();
+							this.blocks.add(rb);
+						} else {
+							this.addErrorToLog2("Block[" + Integer.toString(i)
+									+ "]: All attributes must be greater than 0.");
+						}
 					}
 				}
 			}
@@ -576,7 +644,7 @@ public class EBingoModel {
 				EBingoModel.this.setTotalPlays(totalplay);
 				EBingoModel.this.log.writeLine("Total Plays: " + Integer.toString(totalplay));
 				
-				if (totalplay > 0) {
+				if (totalplay > 0 || EBingoModel.this.genGambersRuin) {
 					initializeDB();
 					
 					// Start to generate the results
@@ -627,6 +695,9 @@ public class EBingoModel {
 		
 		EBingoModel.this.currbie = new BasicInfoEntry();
 		EBingoModel.this.currple = new PercentLosersEntry();
+		
+		if (EBingoModel.this.genGambersRuin)
+			EBingoModel.this.currgre = new GamblersRuinEntry();
 		//TODO new bunch of "Entries" here
 		
 		while (EBingoModel.this.currblock != null
@@ -645,21 +716,30 @@ public class EBingoModel {
 					
 					if (EBingoModel.this.genPlayResults) 
 						Database.insertIntoTable(EBingoModel.this.getLCResultsDBTableName(), r);
-				
-					EBingoModel.this.incrementCurrPlay();
 					
-					EBingoModel.this.currple.updatePLE(r);
+					// Increment play
+					if (EBingoModel.this.genGambersRuin) {
+						EBingoModel.this.incrementGRCurrPlay(r);
+					} else {
+						EBingoModel.this.incrementCurrPlay();
+						EBingoModel.this.currple.updatePLE(r);
+					}
+					
+					
 					//TODO update bunch of "Entries" here
 					
-					if (currblock != null) {
-						if (currblock.getRepeatComplete()) {
-							currblock.repeatcomplete = false;
-						}
 					
-						if (currblock.getBlockComplete()) {
-							currblock.blockcomplete = false;
-						}
+					if (this.repeatcomplete) {
+						this.repeatcomplete = false;
 					}
+				
+					if (EBingoModel.this.blockcomplete) {
+						if (!EBingoModel.this.genGambersRuin) {
+							currple.flushPLE();
+						}
+						EBingoModel.this.blockcomplete = false;
+					}
+					
 				} // If result generated is valid 
 			} // If paused
 		} // If every block is done
@@ -779,15 +859,15 @@ public class EBingoModel {
 			// If the current block needs to be repeated
 			if (this.currblock.currrepeat < this.currblock.repeat) {
 				currblock.incrementCurrRepeat();
-				currblock.setRepeatComplete(true);
+				this.repeatcomplete = true;
 				currblock.reset();
 			// If the block is done
 			} else {
 				currblockindex++;
-				currblock.setBlockComplete(true);
+				this.blockcomplete = true;
 				
 				currbie.flushBIE();
-				currple.flushPLE();
+				
 				// If there are more blocks
 				if (currblockindex < blocks.size()) {
 					currblock = blocks.get(currblockindex);
@@ -798,6 +878,35 @@ public class EBingoModel {
 		}
 		
 		UpdateViews();
+	}
+	
+	private void incrementGRCurrPlay(Result r) {
+		this.currplayed++;
+		
+		// If the currgrblock ran out of money
+		if (this.currblock.incrementCurrPlay(r)) {
+			// If currgrblock needs to be repeated
+			if (this.currblock.currrepeat < this.currblock.repeat) {
+				this.repeatcomplete = true;
+				this.currgre.updateGRE();
+				this.currgre.resetBalance();
+				this.currblock.currrepeat++;
+				this.currblock.reset();
+			} else {
+				this.blockcomplete = true;
+				this.currgre.updateGRE();
+				this.currblockindex++;
+				
+				// If there are more blocks
+				if (this.currblockindex < this.blocks.size()) {
+					this.currblock = this.blocks.get(currblockindex);
+					this.currgre = new GamblersRuinEntry();
+				} else {
+					this.currblock = null;
+				}
+			}
+		}
+		this.UpdateViews();
 	}
 	
 	
@@ -1309,13 +1418,11 @@ public class EBingoModel {
 		private long blocknum = 0;
 		
 		private int currrepeat = 1;
-		private boolean blockcomplete = false;
-		private boolean repeatcomplete = false;
 		
 		public void setNumPlays(int value) {
 			this.numplays = value;
 		}
-		
+
 		public void setNumCards(int value) {
 			this.numcards = value;
 		}
@@ -1334,14 +1441,6 @@ public class EBingoModel {
 		
 		public void incrementCurrRepeat() {
 			this.currrepeat++;
-		}
-		
-		public void setBlockComplete(boolean value) {
-			this.blockcomplete = value;
-		}
-		
-		public void setRepeatComplete(boolean value) {
-			this.repeatcomplete = value;
 		}
 		
 		public int getNumPlays() {
@@ -1368,12 +1467,18 @@ public class EBingoModel {
 			return this.currplay;
 		}
 		
-		public boolean getBlockComplete() {
-			return this.blockcomplete;
+		public void setBankroll(double value) {
+			// To be implemented in GRBlock
 		}
 		
-		public boolean getRepeatComplete() {
-			return this.repeatcomplete;
+		public double getBankroll() {
+			// To be implemented in GRBlock
+			return 0;
+		}
+		
+		public boolean incrementCurrPlay(Result r) {
+			return false;
+			// To be implemented in GRBlock
 		}
 		
 		public boolean incrementCurrPlay() {
@@ -1385,6 +1490,15 @@ public class EBingoModel {
 		public void reset() {
 			this.currplay = 0;
 			
+		}
+		
+		public void setCurrBalance(double bankroll) {
+			// To be implemented in GRBlock
+		}
+		
+		public double getCurrBalance() {
+			return 0;
+			// To be implemented in GRBlock
 		}
 	}
 	
@@ -1413,6 +1527,88 @@ public class EBingoModel {
 		}
 	}
 	
+	public class GRBlock extends Block {
+		private double bankroll = 0;
+		private double currbalance = 0;
+		
+		public GRBlock () {
+			super();
+		}
+		
+		public int getCurrSpin() {
+			return super.currplay;
+		}
+		
+		public void addCurrBalance(double value) {
+			this.currbalance += value;
+		}
+		
+		@Override
+		public void setCurrBalance(double value) {
+			this.currbalance = value;
+		}
+		
+		public void placeWager() {
+			currbalance -= super.wager * super.numcards;
+		}
+		
+		@Override
+		public void setBankroll(double value) {
+			this.bankroll = value;
+		}
+		
+		@Override
+		public double getBankroll() {
+			return this.bankroll;
+		}
+		
+		@Override
+		public double getCurrBalance() {
+			return EBingoModel.this.roundTwoDecimals(this.currbalance);
+		}
+		
+		public void updateCurrBalance(Result r) {
+			// Update the total wins 
+			EBingoModel.this.currgre.addWins(r.creditswon * r.wager);
+			
+			currbalance += r.creditswon * r.wager;
+			
+			// Update the peak balance
+			if (currbalance > EBingoModel.this.currgre.currpeakbalance)
+				EBingoModel.this.currgre.setCurrPeakBalance(currbalance);
+			
+			// Update the win/loss/ldw info
+			if (r.creditswon > 0) {
+				if ((r.creditswon * r.wager - r.getBet()) < 0 )
+					EBingoModel.this.currgre.incrementLDWs();
+				else 
+					EBingoModel.this.currgre.incrementWins();
+			} else {
+				EBingoModel.this.currgre.incrementLosses();
+			}
+		}
+		
+		@Override
+		public boolean incrementCurrPlay(Result r) {
+			placeWager();
+			
+			if (this.currbalance < 0)
+				return true;
+			else {
+				updateCurrBalance(r);
+				super.currplay++;
+				return false;
+			}
+		}
+		
+		@Override
+		public void reset() {
+			super.currplay = 0;
+			currbalance = (double)this.bankroll;
+		}
+		
+	}
+	
 	// Result class
 	public class Result {
 		private int[] balls = new int[NUM_ON_CARDS];
@@ -1430,6 +1626,10 @@ public class EBingoModel {
 		
 		public Result(int cards) {
 			numcards = cards;
+		}
+
+		public float getBet() {
+			return this.wager * this.numcards;
 		}
 
 		public int[] getBalls() {
@@ -1906,30 +2106,34 @@ public class EBingoModel {
 		private int numcards = 0;
 		private int repeats = 0;
 		
-		private int wins = 0;
-		private int ldws = 0;
-		private int losses = 0;
+		private long wins = 0;
+		private long ldws = 0;
+		private long losses = 0;
 		
 		private double initBalance = 0;
 		private double bet = 0;
+		private float wager = 0;
 		private int currIndex = 0;
 		private double lpavg = 0;
 		private double lpmedian = 0;
 		private double lpSD = 0;
-		private int rsavg = 0;
-		private int rsmedian = 0;
-		private int rsSD = 0;
+		private long rsavg = 0;
+		private long rsmedian = 0;
+		private long rsSD = 0;
+		private int rsplayavg = 0;
 		
 		private List<Integer> losspercentages = new ArrayList<Integer>();
 		private List<Range> ranges = new ArrayList<Range>();
 		private List<Double> balances = new ArrayList<Double>();
-		private List<Integer> redsquares = new ArrayList<Integer>();
+		private List<Long> redsquares = new ArrayList<Long>();
+		private List<Integer> rsplays = new ArrayList<Integer>();  
 		
 		public PercentLosersEntry() {
 			if (EBingoModel.this.currblock != null) {
 				this.id = currblock.blocknum;
 				this.numplays = EBingoModel.this.currblock.numplays;
 				this.numcards = EBingoModel.this.currblock.numcards;
+				this.wager = EBingoModel.this.currblock.wager;
 				this.repeats = EBingoModel.this.currblock.repeat;
 			
 				this.initBalance = numplays * numcards * EBingoModel.this.currblock.wager;
@@ -1937,7 +2141,8 @@ public class EBingoModel {
 				
 				for (int i = 0; i < this.repeats; i++) {
 					this.balances.add(initBalance);
-					this.redsquares.add(0);
+					this.redsquares.add((long)0);
+					this.rsplays.add(0);
 				}
 			
 				double percent = 1;
@@ -1969,7 +2174,7 @@ public class EBingoModel {
 			return this.numcards;
 		}
 		
-		public int getWins() {
+		public long getWins() {
 			return this.wins;
 		}
 		
@@ -1981,7 +2186,7 @@ public class EBingoModel {
 			this.wins++;
 		}
 		
-		public int getLDWs() {
+		public long getLDWs() {
 			return this.ldws;
 		}
 		
@@ -1989,7 +2194,7 @@ public class EBingoModel {
 			this.ldws++;
 		}
 		
-		public int getLosses() {
+		public long getLosses() {
 			return this.losses;
 		}
 		
@@ -2001,16 +2206,16 @@ public class EBingoModel {
 			return this.lpavg;
 		}
 		
-		public List<Integer> getRedSquares() {
+		public List<Long> getRedSquares() {
 			return this.redsquares;
 		}
 		
-		public int getRedSquare(int index) {
+		public long getRedSquare(int index) {
 			return this.redsquares.get(index);
 		}
 		
 		public void addRedSquare(int value) {
-			this.redsquares.set(currIndex, value);
+			this.redsquares.set(currIndex, redsquares.get(currIndex) + value);
 		}
 		
 		public double getMedianLossBalance() {
@@ -2021,16 +2226,20 @@ public class EBingoModel {
 			return this.lpSD;
 		}
 		
-		public int getAvgRedSquares() {
+		public long getAvgRedSquares() {
 			return this.rsavg;
 		}
 		
-		public int getMedianRedSquares() {
+		public long getMedianRedSquares() {
 			return this.rsmedian;
 		}
 		
-		public int getRedSquaresSD() {
+		public long getRedSquaresSD() {
 			return this.rsSD;
+		}
+		
+		public int getAvgRSPlay() {
+			return this.rsplayavg;
 		}
 		
 		public List<Integer> getLossPercentages() {
@@ -2043,6 +2252,10 @@ public class EBingoModel {
 		
 		public void incrementLossPercentage(int index) {
 			this.losspercentages.set(index, losspercentages.get(index) + 1);
+		}
+		
+		public void incrementRSPlay() {
+			this.rsplays.set(currIndex, rsplays.get(currIndex) + 1);
 		}
 		
 		public void addBalance(double value) {
@@ -2058,12 +2271,18 @@ public class EBingoModel {
 		}
 		
 		public void updatePLE(Result r) {
-			this.addBalance((r.creditswon - 1) * this.bet);
-			this.addRedSquare(r.redsquares);
+			// Update balance
+			this.addBalance((r.creditswon * this.wager) -  this.bet);
+			
+			// Update flashing red squares counts
+			if (r.isRedSquareFlashing && r.redsquares > 0) {
+				this.addRedSquare(r.redsquares);
+				this.incrementRSPlay();
+			}
 			
 			// Update win/lose and ldws
 			if (r.creditswon > 0) {
-				if (((r.creditswon -1) * bet) >= 0)
+				if (((r.creditswon * this.wager) - this.bet) >= 0)
 					this.incrementWins();
 				else this.incrementLDWs();
 			} else {
@@ -2071,7 +2290,7 @@ public class EBingoModel {
 			}
 			
 			// If one repeat is completed
-			if (EBingoModel.this.currblock.getRepeatComplete()) {
+			if (EBingoModel.this.repeatcomplete) {
 				updateLossPercentage();
 				updateLossBalance();
 				incrementCurrBalanceIndex();
@@ -2087,11 +2306,13 @@ public class EBingoModel {
 			calculateAvgRedSquares();
 			calculateMedianRedSquares();
 			calculateRedSquaresSD();
+			calculateAvgRSPlays();
 			
 			try {
 				Database.flushBatch();
 				Database.insertIntoTable(EBingoModel.this.getPercentLosersDBTableName(),
-						this, EBingoModel.this.blocks.size());
+						this);
+				Database.flushBatch();
 			} catch (SQLException e) {
 				EBingoModel.this.log.writeLine("Inserting PercentLosers Table encountered problem: "
 						+ e.getMessage());
@@ -2155,17 +2376,26 @@ public class EBingoModel {
 			}
 		}
 		
-		private void calculateAvgRedSquares() {
-			int total = 0;
+		private void calculateAvgRSPlays() {
+			long total = 0;
 			
-			for (int i: this.redsquares)
+			for (int i : this.rsplays)
 				total += i;
+			
+			this.rsplayavg = (int) (total / repeats);
+		}
+		
+		private void calculateAvgRedSquares() {
+			long total = 0;
+			
+			for (long l: this.redsquares)
+				total += l;
 			
 			this.rsavg = total / repeats;
 		}
 		
 		private void calculateMedianRedSquares() {
-			List<Integer> sortedrs = this.redsquares;
+			List<Long> sortedrs = this.redsquares;
 			Collections.sort(sortedrs);
 			
 			int mid = sortedrs.size() / 2;
@@ -2176,13 +2406,334 @@ public class EBingoModel {
 		}
 		
 		private void calculateRedSquaresSD() {
-			int rssd = 0;
+			long rssd = 0;
 		
-			for (int i : this.redsquares)
-				rssd += (rsavg - i) * (rsavg - i);
+			for (long l : this.redsquares)
+				rssd += (rsavg - l) * (rsavg - l);
 			
 			rssd /= this.redsquares.size();
 			this.rsSD = (int)Math.sqrt(rssd);
+		}
+	}
+	
+	public class GamblersRuinEntry {
+		private long id = 0;
+		private int numcards = 0;
+		private float bet = 0;
+		
+		private long totalplays = 0;
+		private double totalwin = 0;
+		private float paybackpercentage = 0;
+		
+		private int numplays = 0;
+		private double currpeakbalance = 0;
+		
+		private int wins = 0;
+		private int ldws = 0;
+		private int losses = 0;
+		
+		private int avgplay = 0;
+		private int medianplay = 0;
+		private int playsd = 0;
+		private int maxplay = 0;
+		
+		private double avgpb = 0;
+		private double medianpb = 0;
+		private double pbsd = 0;
+		private double maxpb = 0;
+		
+		private List<Range> playranges = new ArrayList<Range>();
+		private List<Integer> plays = new ArrayList<Integer>();
+		
+		private List<Range> peakbalanceranges = new ArrayList<Range>();
+		private List<Double> peakbalances = new ArrayList<Double>();
+		
+		private List<Integer> allplays = new ArrayList<Integer>();
+		private List<Double> allpbs = new ArrayList<Double>();
+		
+		public GamblersRuinEntry() {
+			if (EBingoModel.this.currblock != null) {
+				this.id = EBingoModel.this.currblock.blocknum;
+				this.numcards = EBingoModel.this.currblock.numcards;
+				this.bet = numcards * EBingoModel.this.currblock.wager;
+				this.currpeakbalance = EBingoModel.this.currblock.getBankroll();
+			
+				// Initialize the ranges
+				int low = 0;
+				int increment = 100;
+				for (int i = 0; i < 12; i++) {
+					int high = low + increment;
+					Range r = new Range(low, high);
+					low = high;
+					playranges.add(i, r);
+				}
+				increment = 1000;
+				for (int i = 12; i < 20; i++) {
+					int high = low + increment;
+					Range r = new Range(low, high);
+					low = high;
+					playranges.add(i, r);
+				}
+				
+				increment = 10000;
+				for (int i = 20; i < 24; i++) {
+					int high = low + increment;
+					Range r = new Range(low, high);
+					low = high;
+					playranges.add(i, r);
+				}
+				playranges.add(24, new Range(low, low));
+				
+				
+				low = 100;
+				increment = 100;
+				peakbalanceranges.add(0, new Range(low, low));
+				for (int i = 1; i < 10; i++) {
+					int high = low + increment;
+					Range r = new Range(low, high);
+					low = high;
+					peakbalanceranges.add(i, r);
+				}
+				increment = 1000;
+				for (int i = 10; i < 14; i++) {
+					int high = low + increment;
+					Range r = new Range(low, high);
+					low = high;
+					peakbalanceranges.add(i, r);
+				}
+				peakbalanceranges.add(14, new Range(low, low));
+				
+				// Initialize the array lists
+				for (int i = 0; i < playranges.size(); i++)
+					this.plays.add(0);
+				
+				for (int i = 0; i < peakbalanceranges.size(); i++)
+					this.peakbalances.add(0d);
+			}
+		}
+		
+		public void incrementLosses() {
+			this.losses++;
+		}
+
+		public void incrementWins() {
+			this.wins++;
+		}
+
+		public void incrementLDWs() {
+			this.ldws++;
+		}
+
+		public void setCurrPeakBalance(double value) {
+			this.currpeakbalance = value;
+		}
+
+		public void addWins(double value) {
+			this.totalwin += value;
+		}
+
+		public void resetBalance() {
+			this.currpeakbalance = (double)EBingoModel.this.currblock.getBankroll();
+		}
+
+		public long getID() {
+			return this.id;
+		}
+		
+		public int getNumCards() {
+			return this.numcards;
+		}
+		
+		public long getTotalPlays() {
+			return this.totalplays;
+		}
+		
+		public double getTotalBalance() {
+			return this.totalwin;
+		}
+		
+		public float getPayBackPercentage() {
+			return this.paybackpercentage;
+		}
+		
+		public int getWins() {
+			return this.wins;
+		}
+		
+		public int getLDWs() {
+			return this.ldws;
+		}
+		
+		public int getLosses() {
+			return this.losses;
+		}
+		
+		public int getAvgPlay() {
+			return this.avgplay;
+		}
+		
+		public int getMedianPlay() {
+			return this.medianplay;
+		}
+		
+		public int getPlaySD() {
+			return this.playsd;
+		}
+		
+		public int getMaxPlay() {
+			return this.maxplay;
+		}
+		
+		public double getAvgPB() {
+			return this.avgpb;
+		}
+		
+		public double getMedianPB() {
+			return this.medianpb;
+		}
+		
+		public double getPBSD() {
+			return this.pbsd;
+		}
+		
+		public double getMaxPB() {
+			return this.maxpb;
+		}
+		
+		public List<Range> getPlayRanges() {
+			return this.playranges;
+		}
+		
+		public Range getPlayRange(int index) {
+			return this.playranges.get(index);
+		}
+		
+		public int getPlay(int index) {
+			return this.plays.get(index);
+		}
+		
+		public List<Range> getPBRanges() {
+			return this.peakbalanceranges;
+		}
+		
+		public Range getPBRange(int index) {
+			return this.peakbalanceranges.get(index);
+		}
+		
+		public double getPB(int index) {
+			return this.peakbalances.get(index);
+		}
+		
+		public void incrementNumSpins(int index) {
+			this.plays.set(index, plays.get(index) + 1);
+		}
+		
+		public void incrementPeakBalances(int index) {
+			this.peakbalances.set(index, peakbalances.get(index) + 1);
+		}
+		
+		/**
+		 * This method is called at the end of each block repeat and at the each of each block
+		 */
+		public void updateGRE() {
+			this.numplays = EBingoModel.this.currblock.getCurrPlay() + 1;
+			this.totalplays += numplays;
+			
+			// Update spin ranges
+			for (int i = 0; i < playranges.size(); i++) {
+				if (playranges.get(i).isTotalSpinCountInRange(numplays)) {
+					this.incrementNumSpins(i);
+					break;
+				}
+			}
+			
+			// Update peak balance ranges
+			for (int i = 0; i < peakbalanceranges.size(); i++) {
+				if (peakbalanceranges.get(i).isPeakBalanceInRange(currpeakbalance)) {
+					this.incrementPeakBalances(i);
+					break;
+				}
+			}
+			
+			
+			this.allplays.add(numplays);
+			this.allpbs.add(currpeakbalance);
+			
+			// If a block is completed
+			if (EBingoModel.this.blockcomplete) {
+				calculateMedians();
+				calculateAverages();
+				calculateSDs();
+				updateMax();
+				calculatePaybackPercentage();
+				
+				try {
+					Database.flushBatch();
+					Database.insertIntoTable(EBingoModel.this.getGamblersRuinDBname(), this);
+					Database.flushBatch();
+				} catch (Exception e) {
+					EBingoModel.this.log.writeLine("Inserting GRE encountered problem: "
+							+ e.getMessage());
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		private void calculateMedians() {
+			Collections.sort(allplays);
+			Collections.sort(allpbs);
+			
+			int mid_play = allplays.size() / 2;
+			int mid_pb = allpbs.size() / 2;
+			
+			// Get median of num of plays
+			this.medianplay = (allplays.size() % 2 == 1) ? allplays.get(mid_play) :
+				(allplays.get(mid_play - 1) + allplays.get(mid_play)) / 2;
+			
+			// Get median of peak balances
+			this.medianpb = (allpbs.size() % 2 == 1) ? allpbs.get(mid_pb) :
+				(allpbs.get(mid_pb - 1) + allpbs.get(mid_pb)) / 2;
+		}
+		
+		private void calculateAverages() {
+			int totalplay = 0;
+			int totalpb = 0;
+			
+			// Calculate avg for num of plays
+			for (int i : allplays) 
+				totalplay += i;
+			this.avgplay = totalplay / allplays.size();
+			
+			// Calculate SD for peak balances
+			for (double d : allpbs) 
+				totalpb += d;
+			this.avgpb = totalpb / allpbs.size();
+		}
+		
+		private void calculateSDs() {
+			long sdplays = 0;
+			double sdpb = 0;
+			
+			// Calculate SD for num of plays
+			for (int i : this.allplays)
+				sdplays += (this.avgplay - i) * (this.avgplay - i);
+			sdplays /= this.allplays.size();
+			this.playsd = (int)Math.sqrt(sdplays);
+			
+			// Calculate SD for peak balances
+			for (double d : this.allpbs) 
+				sdpb += (this.avgpb - d) * (this.avgpb - d);
+			sdpb /= this.allpbs.size();
+			this.pbsd = (int)Math.sqrt(sdpb);
+		}
+		
+		private void updateMax() {
+			this.maxplay = Collections.max(allplays);
+			this.maxpb = Collections.max(allpbs);
+		}
+		
+		private void calculatePaybackPercentage() {
+			this.paybackpercentage = (float)(this.totalwin / (this.totalplays * this.bet));
 		}
 	}
 	

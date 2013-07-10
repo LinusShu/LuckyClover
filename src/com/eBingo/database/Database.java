@@ -14,6 +14,7 @@ import java.util.List;
 import com.eBingo.EBingoModel.BasicInfoEntry;
 import com.eBingo.EBingoModel.Block;
 import com.eBingo.EBingoModel.Card;
+import com.eBingo.EBingoModel.GamblersRuinEntry;
 import com.eBingo.EBingoModel.Mode;
 import com.eBingo.EBingoModel.PaytableEntry;
 import com.eBingo.EBingoModel.PercentLosersEntry;
@@ -492,7 +493,7 @@ public class Database {
 		
 	}
 	
-	public static void insertIntoTable(String tableName, PercentLosersEntry ple, int blocksize)
+	public static void insertIntoTable(String tableName, PercentLosersEntry ple)
 			throws SQLException {
 		tableName = tableName.toUpperCase();
 		
@@ -525,15 +526,16 @@ public class Database {
 					+ " (ID bigint NOT NULL, "
 					+ "PLAYS integer NOT NULL, "
 					+ "CARDS integer NOT NULL, "
-					+ "WINS integer NOT NULL, "
-					+ "LDWS integer NOT NULL, " 
-					+ "LOSSES integer NOT NULL, "
+					+ "WINS bigint NOT NULL, "
+					+ "LDWS bigint NOT NULL, " 
+					+ "LOSSES bigint NOT NULL, "
 					+ "AVGLP integer NOT NULL, " 
 					+ "MEDIANLP integer NOT NULL, "
 					+ "LPSD integer NOT NULL, "
-					+ "AVGRS integer NOT NULL, "
-					+ "MEDIANRS integer NOT NULL, "
-					+ "RSSD integer NOT NULL"
+					+ "AVGRS bigint NOT NULL, "
+					+ "MEDIANRS bigint NOT NULL, "
+					+ "RSSD bigint NOT NULL, "
+					+ "AVGRSPLAYS integer NOT NULL"
 					+ losspercentages + ")";
 
 			Database.createTable(tableName, query);
@@ -541,9 +543,9 @@ public class Database {
 		
 		// Otherwise, add the LossPercentageEntry to the table
 		String query = "insert into " + tableName
-				+ "(ID, PLAYS, CARDS, WINS, LDWS, LOSSES, AVGLP, MEDIANLP, LPSD, AVGRS, MEDIANRS, RSSD" 
+				+ "(ID, PLAYS, CARDS, WINS, LDWS, LOSSES, AVGLP, MEDIANLP, LPSD, AVGRS, MEDIANRS, RSSD, AVGRSPLAYS" 
 				+ losspercentagesI + ") "
-				+ "values(?,?,?,?,?,?,?,?,?,?,?,?" + losspercentagesQ + ")";
+				+ "values(?,?,?,?,?,?,?,?,?,?,?,?,?" + losspercentagesQ + ")";
 				
 				try {
 					if (st == null)
@@ -552,17 +554,18 @@ public class Database {
 					st.setLong(1, ple.getID());
 					st.setInt(2, ple.getNumPlays());
 					st.setInt(3, ple.getNumCards());
-					st.setInt(4, ple.getWins());
-					st.setInt(5, ple.getLDWs());
-					st.setInt(6, ple.getLosses());
+					st.setLong(4, ple.getWins());
+					st.setLong(5, ple.getLDWs());
+					st.setLong(6, ple.getLosses());
 					st.setInt(7, (int)ple.getAvgLossBalance());
 					st.setInt(8, (int)ple.getMedianLossBalance());
 					st.setInt(9, (int)ple.getLossBalanceSD());
-					st.setInt(10, ple.getAvgRedSquares());
-					st.setInt(11, ple.getMedianRedSquares());
-					st.setInt(12, ple.getRedSquaresSD());
+					st.setLong(10, ple.getAvgRedSquares());
+					st.setLong(11, ple.getMedianRedSquares());
+					st.setLong(12, ple.getRedSquaresSD());
+					st.setInt(13, ple.getAvgRSPlay());
 					
-					int index = 12;
+					int index = 13;
 					for (int i = 0; i < ple.getLossPercentages().size(); i++) {
 						st.setInt(++index, ple.getLossPercentage(i));
 					}
@@ -570,13 +573,138 @@ public class Database {
 					st.addBatch();
 					batchRequests++;
 					
-					if (batchRequests >= blocksize) {
+					if (batchRequests >= MAX_BATCH_LIMIT) {
 						st.executeBatch();
 						batchRequests = 0;
 					}
 				} catch (SQLException e) {
 					throw e;
 				}
+	}
+	
+	public static void insertIntoTable(String tableName, GamblersRuinEntry gre) 
+			throws SQLException {
+		tableName = tableName.toUpperCase();
+		
+		String playranges = "";
+		String playrangesQ = "";
+		String playrangesI = "";
+		
+		if (gre.getPlayRanges() != null) {
+			for (int i = 0; i < gre.getPlayRanges().size(); i++) {
+				Range r = gre.getPlayRange(i);
+				
+				if (r.low == r.high) {
+					playranges += ", PLAYS" + (int)r.low + "UP integer NOT NULL";
+					playrangesI += ", PLAYS" + (int)r.low + "UP";
+				} else {
+					playranges += ", PLAYS" + (int)r.low + "_" + (int)r.high + " integer NOT NULL";
+					playrangesI += ", PLAYS" + (int)r.low + "_" + (int)r.high;
+				}
+				
+				playrangesQ += ",?";
+			}
+		}
+		
+		
+		String peakbalanceranges = "";
+		String peakbalancerangesQ = "";
+		String peakbalancerangesI = "";
+		
+		if (gre.getPBRanges() != null) {
+			for (int i = 0; i < gre.getPBRanges().size(); i++) {
+				Range r = gre.getPBRange(i);
+				
+				if (r.high == 100) {
+					peakbalanceranges += ", PB" + (int)r.low + " integer NOT NULL";
+					peakbalancerangesI += ", PB" + (int)r.low;
+				} else if (r.low == 5000) {
+					peakbalanceranges += ", PB" + (int)r.low  + "UP integer NOT NULL";
+					peakbalancerangesI += ", PB" + (int)r.low + "UP";
+				} else {
+					peakbalanceranges += ", PB" + (int)r.low + "_" + (int)r.high + " integer NOT NULL";
+					peakbalancerangesI += ", PB" + (int)r.low + "_" + (int)r.high;
+				}
+				peakbalancerangesQ += ",?";
+			}
+		}
+		
+		try {
+		// Create table if does not exist
+			if (!Database.doesTableExist(tableName)) {
+	
+				String query = "create table " + tableName 
+						+ " (ID bigint NOT NULL, "
+						+ "NUMOFCARDS integer NOT NULL, "
+						+ "NUMOFPLAYS bigint NOT NULL, "
+						+ "WINS integer NOT NULL, "
+						+ "LOSSES integer NOT NULL, "
+						+ "LDWS integer NOT NULL"
+						+ playranges 
+						+ ", MAX_PLAYS integer NOT NULL"
+						+ ", AVG_PLAYS integer NOT NULL"
+						+ ", MEDIAN_PLAYS integer NOT NULL"
+						+ ", SD_PLAYS integer NOT NULL"
+						+ peakbalanceranges
+						+ ", MAX_PB integer NOT NULL"
+						+ ", AVG_PB integer NOT NULL"
+						+ ", MEDIAN_PB integer NOT NULL" 
+						+ ", SD_PB integer NOT NULL" 
+						+ ", PAYBACK float NOT NULL)";
+				
+				Database.createTable(tableName, query);
+			}
+			
+			// Otherwise, add the LossPercentageEntry to the table
+			String query = "insert into " + tableName
+					+ "(ID, NUMOFCARDS, NUMOFPLAYS, WINS, LOSSES, LDWS" 
+					+ playrangesI + ", MAX_PLAYS, AVG_PLAYS, MEDIAN_PLAYS, SD_PLAYS" 
+					+ peakbalancerangesI + ", MAX_PB, AVG_PB, MEDIAN_PB, SD_PB, PAYBACK) "
+					+ "values(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?" + playrangesQ  + peakbalancerangesQ + ")";
+			
+			
+			if (st == null)
+				st = conn.prepareStatement(query);
+	
+			st.setLong(1, gre.getID());
+			st.setInt(2, gre.getNumCards());
+			st.setLong(3, gre.getTotalPlays());
+			st.setInt(4, gre.getWins());
+			st.setInt(5, gre.getLosses());
+			st.setInt(6, gre.getLDWs());
+			
+			int index = 6;
+			for (int i = 0; i < gre.getPlayRanges().size(); i++) 
+				st.setInt(++index, gre.getPlay(i));
+			
+			st.setInt(++index, gre.getMaxPlay());
+			st.setInt(++index, gre.getAvgPlay());
+			st.setInt(++index, gre.getMedianPlay());
+			st.setInt(++index, gre.getPlaySD());
+
+			for (int i = 0; i < gre.getPBRanges().size(); i++) 
+				st.setInt(++index, (int)gre.getPB(i));
+			
+			st.setInt(++index, (int)gre.getMaxPB());
+			st.setInt(++index, (int)gre.getAvgPB());
+			st.setInt(++index, (int)gre.getMedianPB());
+			st.setInt(++index, (int)gre.getPBSD());
+			st.setFloat(++index, gre.getPayBackPercentage());
+			
+			st.addBatch();
+			batchRequests++;
+			
+			if (batchRequests >= MAX_BATCH_LIMIT) {
+				st.executeBatch();
+				batchRequests = 0;
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}		
+		
+		
+		
 	}
 	
 	public static void dropTable(String tableName) throws SQLException {

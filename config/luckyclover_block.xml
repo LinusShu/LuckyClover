@@ -20,7 +20,7 @@
 		 
 		 <block numplays="4000" numcards="1" wager="1" repeat="10000"/>
 		 <block numplays="4000" numcards="4" wager="0.25" repeat="10000"/>
-		 
+		  
 		 <block numplays="10000" numcards="1" wager="1" repeat="10000"/>
 		 <block numplays="10000" numcards="4" wager="0.25" repeat="10000"/>
 		 
@@ -31,4 +31,18 @@
 		 <block numplays="50000" numcards="4" wager="0.25" repeat="10000"/>
 		 
 	</blocks>
+	
+	<grblocks>
+		<!-- Gambler's Ruin block information for LucyClover mode
+			numcards: [integer > 0]
+			wager: [float > 0]
+			bankroll: [double > 0]
+			repeat: [integer > 0 && < 10000]
+			Note: when grblocks is present, the normal blocks are not processed 
+		-->
+		
+		<grblock numcards="1" wager="1" bankroll="100" repeat="10000"/>
+		<grblock numcards="4" wager="0.25" bankroll="100" repeat="10000"/>
+	</grblocks>
+	
 </data>

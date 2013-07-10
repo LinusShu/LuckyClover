@@ -191,12 +191,22 @@ public class EBingoProcessView extends JPanel implements ViewInterface {
 		else
 			this.pauseButton.setText("||");
 		
-		this.currPlayLabel.setText("Generated: " + Integer.toString(this.model.getCurrPlayed()));
-		this.totalPlayedLabel.setText("Total Cards: " + Integer.toString(this.model.getTotalPlays()));
 		
-		this.pb.setMaximum(this.model.getTotalPlays());
-		this.pb.setValue(this.model.getCurrPlayed());
-		this.pb.repaint();
+		this.currPlayLabel.setText("Generated: " + Integer.toString(this.model.getCurrPlayed()));
+		// If in Gambler's Ruin mode
+		if (this.model.getGenGamblersRuin()) {
+			this.totalPlayedLabel.setText("Current Balance: " + Double.toString(model.getCurrBalance()));
+		
+			this.pb.setMaximum(this.model.getBlocks().size());
+			this.pb.setValue(this.model.getBlockIndex() + 1);
+			this.pb.repaint();
+		} else {
+			this.totalPlayedLabel.setText("Total Cards: " + Integer.toString(this.model.getTotalPlays()));
+		
+			this.pb.setMaximum(this.model.getTotalPlays());
+			this.pb.setValue(this.model.getCurrPlayed());
+			this.pb.repaint();
+		}
 	}
 
 }

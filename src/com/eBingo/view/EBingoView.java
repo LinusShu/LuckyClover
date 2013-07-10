@@ -53,6 +53,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 	
 	private JLabel optionLabel = new JLabel("Options:");
 	private JCheckBox genplayresultsCheckBox = new JCheckBox("Generate Play Results DB Table");
+	private JCheckBox genGamblersRuinCheckBox = new JCheckBox("Simulate Gambler's Ruin Scenario");
 	// TODO Add more option check boxes here
 	
 	private JButton runButton = new JButton("Generate!");
@@ -149,6 +150,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 		JPanel optionPanel = new JPanel(new GridLayout(0, 1));
 		optionPanel.add(optionLabel);
 		optionPanel.add(genplayresultsCheckBox);
+		optionPanel.add(genGamblersRuinCheckBox);
 		
 		this.gbc.gridx = 1;
 		this.gbc.gridy = 4;
@@ -261,10 +263,23 @@ public class EBingoView extends JPanel implements ViewInterface{
 
 			@Override
 			public void itemStateChanged(ItemEvent arg0) {
-				if( arg0.getStateChange() == ItemEvent.SELECTED ) {
+				if(arg0.getStateChange() == ItemEvent.SELECTED) {
 					EBingoView.this.model.setGenPlayResults(true);
 				} else {
 					EBingoView.this.model.setGenPlayResults(false);
+				}
+				
+			}
+		});
+		
+		this.genGamblersRuinCheckBox.addItemListener(new ItemListener() {
+
+			@Override
+			public void itemStateChanged(ItemEvent arg0) {
+				if(arg0.getStateChange() == ItemEvent.SELECTED) {
+					EBingoView.this.model.setGenGamblersRuin(true);
+				} else {
+					EBingoView.this.model.setGenGamblersRuin(false);
 				}
 				
 			}
@@ -329,6 +344,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 			this.regularmodeButton.setEnabled(false);
 			
 			this.genplayresultsCheckBox.setEnabled(false);
+			this.genGamblersRuinCheckBox.setEnabled(false);
 			
 		} else {
 			this.runButton.setEnabled(true);
@@ -339,6 +355,13 @@ public class EBingoView extends JPanel implements ViewInterface{
 			this.configFileField.setEnabled(true);
 			this.blockFileField.setEnabled(true);
 			this.dbNameField.setEnabled(true);
+			
+			this.lcmodeButton.setEnabled(true);
+			this.ogmodeButton.setEnabled(true);
+			this.regularmodeButton.setEnabled(true);
+			
+			this.genGamblersRuinCheckBox.setEnabled(true);
+			this.genplayresultsCheckBox.setEnabled(true);
 			
 			switch (this.model.getMode()) {
 				case LUCKY_CLOVER:
@@ -375,7 +398,12 @@ public class EBingoView extends JPanel implements ViewInterface{
 					
 					this.dbNameField.setText(dbNameField.getText().trim().
 							replace("EBingo", "RegularBingo"));
+					this.genGamblersRuinCheckBox.setEnabled(false);
 					break;
+			}
+			
+			if (this.model.getGenGamblersRuin()) {
+				this.regularmodeButton.setEnabled(false);
 			}
 		}
 		

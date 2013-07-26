@@ -847,8 +847,10 @@ public class EBingoModel {
 					
 					int hits = EBingoModel.this.hittable.get(i);
 					
-					if (this.mode != Mode.REGULAR)
+					if (this.mode == Mode.LUCKY_CLOVER)
 						Database.insertIntoTable(getLCPaytableDBName(), pe, hits);
+					else if (this.mode == Mode.OLD_GLORY)
+						Database.insertIntoTable(getOGPaytableDBName(), pe, hits);
 					else 
 						Database.insertIntoTable(getRBPaytableDBName(), pe, hits);
 				}
@@ -2116,7 +2118,10 @@ public class EBingoModel {
 		public void flushBIE() {
 			try {
 				Database.flushBatch();
-				Database.insertIntoTable(getLCBasicInfoDBname(), currbie, blocks.size());
+				if (EBingoModel.this.mode == Mode.LUCKY_CLOVER)
+					Database.insertIntoTable(getLCBasicInfoDBname(), currbie, blocks.size());
+				else 
+					Database.insertIntoTable(getOGBasicInfoDBname(), currbie, blocks.size());
 				Database.flushBatch();
 			} catch (Exception e) {
 				log.writeLine("Inserting BasicInfoEntry encountered problem: " + e.getMessage());

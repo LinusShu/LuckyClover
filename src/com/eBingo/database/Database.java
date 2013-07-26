@@ -84,8 +84,8 @@ public class Database {
 	public static void shutdownConnection() throws SQLException {
 		try {
 			if (st != null) {
-				st = null;
 				st.close();
+				st = null;
 			}
 			
 			conn.commit();
@@ -448,13 +448,13 @@ public class Database {
 					+ " (ID bigint NOT NULL, "
 					+ "PLAYS integer NOT NULL, "
 					+ "CARDS integer NOT NULL, "
-					+ "WINS integer NOT NULL, "
-					+ "LOSSES integer NOT NULL, " 
-					+ "LDWS integer NOT NULL, "
-					+ "PUSHES integer NOT NULL, " 
-					+ "MULTIWINS integer NOT NULL, "
-					+ "REDSQUARES integer NOT NULL, "
-					+ "FLASHING_REDSQUARES integer NOT NULL)";
+					+ "WINS bigint NOT NULL, "
+					+ "LOSSES bigint NOT NULL, " 
+					+ "LDWS bigint NOT NULL, "
+					+ "PUSHES bigint NOT NULL, " 
+					+ "MULTIWINS bigint NOT NULL, "
+					+ "REDSQUARES bigint NOT NULL, "
+					+ "FLASHING_REDSQUARES bigint NOT NULL)";
 
 			Database.createTable(tableName, query);
 		}
@@ -471,13 +471,13 @@ public class Database {
 			st.setLong(1, bie.getBlockID());
 			st.setInt(2, bie.getNumPlays());
 			st.setInt(3, bie.getNumCards());
-			st.setInt(4, bie.getWins());
-			st.setInt(5, bie.getLosses());
-			st.setInt(6, bie.getLDWs());
-			st.setInt(7, bie.getPushes());
-			st.setInt(8, bie.getMultiWins());
-			st.setInt(9, bie.getRedSquares());
-			st.setInt(10, bie.getFlashingRedSquares());
+			st.setLong(4, bie.getWins());
+			st.setLong(5, bie.getLosses());
+			st.setLong(6, bie.getLDWs());
+			st.setLong(7, bie.getPushes());
+			st.setLong(8, bie.getMultiWins());
+			st.setLong(9, bie.getRedSquares());
+			st.setLong(10, bie.getFlashingRedSquares());
 			
 			st.addBatch();
 			batchRequests++;
@@ -521,7 +521,6 @@ public class Database {
 		}
 		
 		if (!Database.doesTableExist(tableName)) {
-			Statement st = null;
 			String query = "create table " + tableName 
 					+ " (ID bigint NOT NULL, "
 					+ "PLAYS integer NOT NULL, "
@@ -535,6 +534,7 @@ public class Database {
 					+ "AVGRS bigint NOT NULL, "
 					+ "MEDIANRS bigint NOT NULL, "
 					+ "RSSD bigint NOT NULL, "
+					+ "AVGRSNPLAYS integer NOT NULL, "
 					+ "AVGRSPLAYS integer NOT NULL"
 					+ losspercentages + ")";
 
@@ -543,9 +543,9 @@ public class Database {
 		
 		// Otherwise, add the LossPercentageEntry to the table
 		String query = "insert into " + tableName
-				+ "(ID, PLAYS, CARDS, WINS, LDWS, LOSSES, AVGLP, MEDIANLP, LPSD, AVGRS, MEDIANRS, RSSD, AVGRSPLAYS" 
+				+ "(ID, PLAYS, CARDS, WINS, LDWS, LOSSES, AVGLP, MEDIANLP, LPSD, AVGRS, MEDIANRS, RSSD, AVGRSNPLAYS, AVGRSPLAYS" 
 				+ losspercentagesI + ") "
-				+ "values(?,?,?,?,?,?,?,?,?,?,?,?,?" + losspercentagesQ + ")";
+				+ "values(?,?,?,?,?,?,?,?,?,?,?,?,?,?" + losspercentagesQ + ")";
 				
 				try {
 					if (st == null)
@@ -563,9 +563,10 @@ public class Database {
 					st.setLong(10, ple.getAvgRedSquares());
 					st.setLong(11, ple.getMedianRedSquares());
 					st.setLong(12, ple.getRedSquaresSD());
-					st.setInt(13, ple.getAvgRSPlay());
+					st.setInt(13, ple.getAvgRSNPlay());
+					st.setInt(14, ple.getAvgRSPlay());
 					
-					int index = 13;
+					int index = 14;
 					for (int i = 0; i < ple.getLossPercentages().size(); i++) {
 						st.setInt(++index, ple.getLossPercentage(i));
 					}

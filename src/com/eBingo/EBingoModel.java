@@ -36,6 +36,11 @@ public class EBingoModel {
 	public static String LC_BLOCKS_TABLE_NAME = "LuckyCLover_Blocks";
 	public static String LC_BASICINFO_TABLE_NAME = "LuckyClover_BasicInfo";
 	
+	public static String OG_RESULTS_TABLE_NAME = "OldGlory_Results";
+	public static String OG_PAYTABLE_NAME = "OldGlory_Paytable";
+	public static String OG_BLOCKS_TABLE_NAME = "OldGlory_Blocks";
+	public static String OG_BASICINFO_TABLE_NAME = "OldGlory_BasicInfo";
+	
 	public static String RB_RESULTS_TABLE_NAME = "RegularBingo_Results";
 	public static String RB_PAYTABLE_NAME = "RegularBingo_Paytable";
 	public static String RB_BLOCKS_TABLE_NAME = "RegularBingo_Blocks";
@@ -202,6 +207,22 @@ public class EBingoModel {
 		return this.buildDBTableName(LC_BASICINFO_TABLE_NAME);
 	}
 	
+	public String getOGResultsDBTableName() {
+		return this.buildDBTableName(OG_RESULTS_TABLE_NAME);
+	}
+	
+	public String getOGPaytableDBName() {
+		return this.buildDBTableName(OG_PAYTABLE_NAME);
+	}
+	
+	public String getOGBlocksDBname() {
+		return this.buildDBTableName(OG_BLOCKS_TABLE_NAME);
+	}
+	
+	public String getOGBasicInfoDBname() {
+		return this.buildDBTableName(OG_BASICINFO_TABLE_NAME);
+	}
+	
 	public String getRBResultsDBTableName() {
 		return this.buildDBTableName(RB_RESULTS_TABLE_NAME);
 	}
@@ -210,7 +231,7 @@ public class EBingoModel {
 		return this.buildDBTableName(RB_PAYTABLE_NAME);
 	}
 	
-	public String getRBBlockDBName() {
+	public String getRBBlocksDBName() {
 		return this.buildDBTableName(RB_BLOCKS_TABLE_NAME);
 	}
 	
@@ -320,9 +341,19 @@ public class EBingoModel {
 	
 	protected void generateDBTableName() {
 		this.setTableSuffix();
-		this.log.writeLine("Set Paytable DB Table Name: " + this.getLCPaytableDBName());
-		this.log.writeLine("Set Blocks DB Table Name: " + this.getLCBlocksDBname());
-		this.log.writeLine("Set Results DB Table Name: " + this.getLCResultsDBTableName());
+		if (this.mode == Mode.LUCKY_CLOVER) {
+			this.log.writeLine("Set Paytable DB Table Name: " + this.getLCPaytableDBName());
+			this.log.writeLine("Set Blocks DB Table Name: " + this.getLCBlocksDBname());
+			this.log.writeLine("Set Results DB Table Name: " + this.getLCResultsDBTableName());
+		} else if (this.mode == Mode.OLD_GLORY) {
+			this.log.writeLine("Set Paytable DB Table Name: " + this.getOGPaytableDBName());
+			this.log.writeLine("Set Blocks DB Table Name: " + this.getOGBlocksDBname());
+			this.log.writeLine("Set Results DB Table Name: " + this.getOGResultsDBTableName());
+		} else {
+			this.log.writeLine("Set Paytable DB Table Name: " + this.getRBPaytableDBName());
+			this.log.writeLine("Set Blocks DB Table Name: " + this.getRBBlocksDBName());
+			this.log.writeLine("Set Results DB Table Name: " + this.getRBResultsDBTableName());
+		}
 	}
 	
 	public void addErrorToLog(String err) {
@@ -529,7 +560,7 @@ public class EBingoModel {
 					Element e = (Element) node;
 				
 					// If in Lucky Clover mode
-					if (this.mode == Mode.LUCKY_CLOVER) {
+					if (this.mode == Mode.LUCKY_CLOVER || this.mode == Mode.OLD_GLORY) {
 						int numplays = -1;
 						int numcards = -1;
 						float wager = -1;
@@ -651,18 +682,10 @@ public class EBingoModel {
 					try {
 						EBingoModel.this.log.writeLine("GENERATING RESULTS...");
 						
-						switch (EBingoModel.this.mode) {
-							case LUCKY_CLOVER:
-								doLuckyCloverMode();
-								break;
-								
-							case OLD_GLORY:
-								doOldGloryMode();
-								break;
-								
-							case REGULAR:
-								doRegularMode();
-								break;
+						if (EBingoModel.this.mode == Mode.REGULAR) {
+							doRegularMode();
+						} else {
+							doEBingoMode();
 						}	
 						
 					} catch (Exception e) {
@@ -689,7 +712,7 @@ public class EBingoModel {
 		
 	}
 	
-	private void doLuckyCloverMode() throws Exception {
+	private void doEBingoMode() throws Exception {
 		EBingoModel.this.currblock = EBingoModel.this.blocks
 				.get(EBingoModel.this.getBlockIndex());
 		
@@ -714,21 +737,23 @@ public class EBingoModel {
 					
 					EBingoModel.this.currbie.updateBIE(r);
 					
-					if (EBingoModel.this.genPlayResults) 
-						Database.insertIntoTable(EBingoModel.this.getLCResultsDBTableName(), r);
+					if (EBingoModel.this.genPlayResults) {
+						if (EBingoModel.this.mode == Mode.LUCKY_CLOVER)
+							Database.insertIntoTable(EBingoModel.this.getLCResultsDBTableName(), r);
+						else 
+							Database.insertIntoTable(EBingoModel.this.getOGResultsDBTableName(), r);
+					}
 					
 					// Increment play
 					if (EBingoModel.this.genGambersRuin) {
 						EBingoModel.this.incrementGRCurrPlay(r);
 					} else {
+						//TODO update bunch of "Entries" here
 						EBingoModel.this.incrementCurrPlay();
 						EBingoModel.this.currple.updatePLE(r);
 					}
 					
-					
-					//TODO update bunch of "Entries" here
-					
-					
+
 					if (this.repeatcomplete) {
 						this.repeatcomplete = false;
 					}
@@ -743,11 +768,6 @@ public class EBingoModel {
 				} // If result generated is valid 
 			} // If paused
 		} // If every block is done
-	}
-	
-	private void doOldGloryMode() throws Exception {
-		// TODO implement this if Old Glory is that different than Lucky Clover,
-		// otherwise merge this method to doLuckyClover()
 	}
 	
 	private void doRegularMode() throws Exception {
@@ -799,8 +819,10 @@ public class EBingoModel {
 					
 					if (this.mode == Mode.LUCKY_CLOVER)
 						Database.insertIntoTable(getLCBlocksDBname(), b);
+					else if (this.mode == Mode.OLD_GLORY)
+						Database.insertIntoTable(getOGBlocksDBname(), b);
 					else 
-						Database.insertIntoTable(getRBBlockDBName(), b);
+						Database.insertIntoTable(getRBBlocksDBName(), b);
 				}
 				Database.flushBatch();
 			}
@@ -817,8 +839,6 @@ public class EBingoModel {
 	private void finalizeDB() {
 		// Create paytable database table
 		try {
-			Database.flushBatch();
-			
 			if (EBingoModel.this.paytable != null
 					&& EBingoModel.this.paytable.size() > 0) {
 				for (int i = 0; i < EBingoModel.this.paytable.size(); i++) {
@@ -827,12 +847,13 @@ public class EBingoModel {
 					
 					int hits = EBingoModel.this.hittable.get(i);
 					
-					if (this.mode == Mode.LUCKY_CLOVER)
+					if (this.mode != Mode.REGULAR)
 						Database.insertIntoTable(getLCPaytableDBName(), pe, hits);
 					else 
 						Database.insertIntoTable(getRBPaytableDBName(), pe, hits);
 				}
 				Database.flushBatch();
+				System.out.println("Paytable inserted!");
 			}
 		} catch (Exception e) {
 			EBingoModel.this.setError();
@@ -844,6 +865,7 @@ public class EBingoModel {
 		// Close DB Connection
 		try {
 			Database.shutdownConnection();
+			System.out.println("DB connection shutted down");
 		} catch (SQLException e) {
 			EBingoModel.this.log.writeLine("ERROR: Closing database encountered error. "
 					+ "Message: " + e.getMessage());
@@ -1191,8 +1213,9 @@ public class EBingoModel {
 						r.getCard(cardindex).setWinName(EBingoModel.this.paytable.get(i).getName());
 					}
 				
-				// Find the red square locations if the outcome has a red square (skip if in Regular Bingo mode)		
-				} else if (model.mode != Mode.REGULAR && num1sintmp == num1sinwin - 1) {
+				// Find the red square locations if the outcome has a red square 
+				//	(skip if in Regular Bingo mode or the card already matches a win pattern)		
+				} else if (model.mode != Mode.REGULAR && !r.getCard(cardindex).isWin && num1sintmp == num1sinwin - 1) {
 					findRedSquares(cardindex, tmp, winpattern);
 				}
 			}
@@ -1696,12 +1719,13 @@ public class EBingoModel {
 			return EBingoModel.this.roundTwoDecimals(this.creditswon * EBingoModel.this.currblock.wager);
 		}
 		
-		public int getRedSquares() {
+		public int getTotalRedSquares() {
+			int total = 0;
 			for (Card c : this.cards) {
-				this.redsquares += c.getNumRedSquares();
+				total += c.getNumRedSquares();
 			}
 			
-			return redsquares;
+			return total;
 		}
 		
 		public void addRedSquares(int value) {
@@ -1909,6 +1933,8 @@ public class EBingoModel {
 		
 		public void setWin(boolean value) {
 			isWin = value;
+			this.redsquarelocations.clear();
+			this.numredsquares = 0;
 		}
 		
 		public void setCreditsWon(int value) {
@@ -1968,47 +1994,47 @@ public class EBingoModel {
 		private int numplays = 0;
 		private int numcards = 0;
 		
-		private int wins = 0;
-		private int losses = 0;
-		private int ldws = 0;
-		private int pushes = 0;
-		private int multiwins = 0;
-		private int redsquares = 0;
-		private int flashingRedSquares = 0;
+		private long wins = 0;
+		private long losses = 0;
+		private long ldws = 0;
+		private long pushes = 0;
+		private long multiwins = 0;
+		private long redsquares = 0;
+		private long flashingRedSquares = 0;
 		
 		public BasicInfoEntry() {
-			if (EBingoModel.this.currblock != null) {
-				this.blockID = EBingoModel.this.currblock.getBlockNum();
-				this.numplays = EBingoModel.this.currblock.getNumPlays();
-				this.numcards = EBingoModel.this.currblock.getNumCards();
+			if (EBingoModel.this.currblockindex < EBingoModel.this.blocks.size()) {
+				this.blockID = EBingoModel.this.blocks.get(currblockindex).getBlockNum();
+				this.numplays = EBingoModel.this.blocks.get(currblockindex).getNumPlays();
+				this.numcards = EBingoModel.this.blocks.get(currblockindex).getNumCards();
 			}
 		}
 		
-		public int getWins() {
+		public long getWins() {
 			return this.wins;
 		}
 		
-		public int getLosses() {
+		public long getLosses() {
 			return this.losses;
 		}
 		
-		public int getPushes() {
+		public long getPushes() {
 			return this.pushes;
 		}
 		
-		public int getLDWs() {
+		public long getLDWs() {
 			return this.ldws;
 		}
 		
-		public int getMultiWins() {
+		public long getMultiWins() {
 			return this.multiwins;
 		}
 		
-		public int getRedSquares() {
+		public long getRedSquares() {
 			return this.redsquares;
 		}
 		
-		public int getFlashingRedSquares() {
+		public long getFlashingRedSquares() {
 			return this.flashingRedSquares;
 		}
 		
@@ -2082,15 +2108,16 @@ public class EBingoModel {
 			
 			// Add red flashing squares
 			if (r.isRedSquareFlashing) {
-				this.addFlashingRedSquares(r.getRedSquares());
+				this.addFlashingRedSquares(r.getTotalRedSquares());
 			}
-			this.addRedSquares(r.getRedSquares());
+			this.addRedSquares(r.getTotalRedSquares());
 		}
 		
 		public void flushBIE() {
 			try {
 				Database.flushBatch();
 				Database.insertIntoTable(getLCBasicInfoDBname(), currbie, blocks.size());
+				Database.flushBatch();
 			} catch (Exception e) {
 				log.writeLine("Inserting BasicInfoEntry encountered problem: " + e.getMessage());
 				e.printStackTrace();
@@ -2121,12 +2148,14 @@ public class EBingoModel {
 		private long rsmedian = 0;
 		private long rsSD = 0;
 		private int rsplayavg = 0;
+		private int rs_nonflashingplayavg = 0;
 		
 		private List<Integer> losspercentages = new ArrayList<Integer>();
 		private List<Range> ranges = new ArrayList<Range>();
 		private List<Double> balances = new ArrayList<Double>();
 		private List<Long> redsquares = new ArrayList<Long>();
 		private List<Integer> rsplays = new ArrayList<Integer>();  
+		private List<Integer> rs_noflashingplays = new ArrayList<Integer>();
 		
 		public PercentLosersEntry() {
 			if (EBingoModel.this.currblock != null) {
@@ -2143,6 +2172,7 @@ public class EBingoModel {
 					this.balances.add(initBalance);
 					this.redsquares.add((long)0);
 					this.rsplays.add(0);
+					this.rs_noflashingplays.add(0);
 				}
 			
 				double percent = 1;
@@ -2155,7 +2185,7 @@ public class EBingoModel {
 						percent -= 0.25;
 					}
 				}
-			
+				
 				for (int i = 0; i < ranges.size(); i++) {
 					this.losspercentages.add(0);
 				}
@@ -2242,6 +2272,10 @@ public class EBingoModel {
 			return this.rsplayavg;
 		}
 		
+		public int getAvgRSNPlay() {
+			return this.rs_nonflashingplayavg;
+		}
+		
 		public List<Integer> getLossPercentages() {
 			return this.losspercentages;
 		}
@@ -2256,6 +2290,10 @@ public class EBingoModel {
 		
 		public void incrementRSPlay() {
 			this.rsplays.set(currIndex, rsplays.get(currIndex) + 1);
+		}
+		
+		public void incrementRSNPlay() {
+			this.rs_noflashingplays.set(currIndex, this.rs_noflashingplays.get(currIndex) + 1);
 		}
 		
 		public void addBalance(double value) {
@@ -2275,9 +2313,14 @@ public class EBingoModel {
 			this.addBalance((r.creditswon * this.wager) -  this.bet);
 			
 			// Update flashing red squares counts
-			if (r.isRedSquareFlashing && r.redsquares > 0) {
-				this.addRedSquare(r.redsquares);
-				this.incrementRSPlay();
+			if (r.redsquares > 0) {
+				this.incrementRSNPlay();
+				
+				if (r.isRedSquareFlashing) {
+					this.addRedSquare(r.redsquares);
+					this.incrementRSPlay();
+				}
+				
 			}
 			
 			// Update win/lose and ldws
@@ -2309,7 +2352,6 @@ public class EBingoModel {
 			calculateAvgRSPlays();
 			
 			try {
-				Database.flushBatch();
 				Database.insertIntoTable(EBingoModel.this.getPercentLosersDBTableName(),
 						this);
 				Database.flushBatch();
@@ -2378,11 +2420,15 @@ public class EBingoModel {
 		
 		private void calculateAvgRSPlays() {
 			long total = 0;
+			long total2 = 0;
 			
-			for (int i : this.rsplays)
-				total += i;
+			for (int i = 0; i < repeats; i++) {
+				total += this.rsplays.get(i);
+				total2 += this.rs_noflashingplays.get(i);
+			}
 			
 			this.rsplayavg = (int) (total / repeats);
+			this.rs_nonflashingplayavg = (int)(total2 / repeats);
 		}
 		
 		private void calculateAvgRedSquares() {

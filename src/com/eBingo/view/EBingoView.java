@@ -48,6 +48,8 @@ public class EBingoView extends JPanel implements ViewInterface{
 	private JLabel modeLabel = new JLabel("Modes:");
 	private JRadioButton lcmodeButton = new JRadioButton("Lucky Clover");
 	private JRadioButton ogmodeButton = new JRadioButton("Old Glory");
+	private JRadioButton timodeButton = new JRadioButton("Treasure Island");
+	private JRadioButton ttmodeButton = new JRadioButton("Tropical Treasures");
 	private JRadioButton regularmodeButton = new JRadioButton("Regular");
 	private ButtonGroup modeGroup = new ButtonGroup();
 	
@@ -84,6 +86,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 		// Group up mode radio buttons
 		modeGroup.add(lcmodeButton);
 		modeGroup.add(ogmodeButton);
+		modeGroup.add(timodeButton);
 		modeGroup.add(regularmodeButton);
 		
 		this.layout = new GridBagLayout();
@@ -138,6 +141,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 		modePanel.add(modeLabel);
 		modePanel.add(lcmodeButton);
 		modePanel.add(ogmodeButton);
+		modePanel.add(timodeButton);
 		modePanel.add(regularmodeButton);
 		
 		this.gbc.gridx = 0;
@@ -252,6 +256,13 @@ public class EBingoView extends JPanel implements ViewInterface{
 			}
 		});
 		
+		this.timodeButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				EBingoView.this.model.setMode(Mode.TREASURE_ISLAND);
+			}
+		});
+		
 		this.regularmodeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -341,6 +352,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 			
 			this.lcmodeButton.setEnabled(false);
 			this.ogmodeButton.setEnabled(false);
+			this.timodeButton.setEnabled(false);
 			this.regularmodeButton.setEnabled(false);
 			
 			this.genplayresultsCheckBox.setEnabled(false);
@@ -358,6 +370,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 			
 			this.lcmodeButton.setEnabled(true);
 			this.ogmodeButton.setEnabled(true);
+			this.timodeButton.setEnabled(true);
 			this.regularmodeButton.setEnabled(true);
 			
 			this.genGamblersRuinCheckBox.setEnabled(true);
@@ -386,6 +399,18 @@ public class EBingoView extends JPanel implements ViewInterface{
 					
 					this.dbNameField.setText(dbNameField.getText().trim().
 							replace("EBingo", "OldGlory"));
+					break;
+				
+				case TREASURE_ISLAND:
+					if (this.model.getConfigFile() != null) {
+						this.configFileField.setText(this.model.getConfigFile().getName());
+					} else {
+						this.configFileField.setText("choose Treasure Island config file");
+						this.blockFileField.setText("choose Treasure Island block file");
+					}
+					
+					this.dbNameField.setText(dbNameField.getText().trim().
+							replace("EBingo", "TreasureIsland"));
 					break;
 					
 				case REGULAR:

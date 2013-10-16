@@ -1,0 +1,28 @@
+<data>
+
+	<Paytable>
+		<!-- Paytable information
+			 Note: Make sure all win patterns are inputed as highest payout amount to lowest payout amount
+			 winPattern: [integer > 0] the decimal representation of the binary win pattern
+			 payout: [integer > 0]
+			 name: [string]
+		-->
+		
+		<PaytableEntry winCode="0001" winPattern="9077073" payout="160" name="letter_x" />
+		
+		<PaytableEntry winCode="0002" winPattern="8912913" payout="40" name="4_corners" />
+		
+		<PaytableEntry winCode="0003" winPattern="31" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="992" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="15360" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="507904" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="16252928" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="8519745" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="557328" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="8659472" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="4329736" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="2162820" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="1083458" payout="4" name="one_line_anyway" />
+		<PaytableEntry winCode="0003" winPattern="541729" payout="4" name="one_line_anyway" />
+	</Paytable>
+</data>

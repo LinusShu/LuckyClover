@@ -28,7 +28,7 @@ public class EBingoModel {
 	public static final int NUM_ON_CARDS = 24;
 
 	public enum Mode {
-		LUCKY_CLOVER, OLD_GLORY, REGULAR
+		LUCKY_CLOVER, OLD_GLORY, TREASURE_ISLAND, REGULAR
 	}
 	
 	public static String LC_RESULTS_TABLE_NAME = "LuckyCLover_Results";
@@ -40,6 +40,11 @@ public class EBingoModel {
 	public static String OG_PAYTABLE_NAME = "OldGlory_Paytable";
 	public static String OG_BLOCKS_TABLE_NAME = "OldGlory_Blocks";
 	public static String OG_BASICINFO_TABLE_NAME = "OldGlory_BasicInfo";
+	
+	public static String TI_RESULTS_TABLE_NAME = "TreasureIsland_Results";
+	public static String TI_PAYTABLE_NAME = "TreasueIsland_Paytable";
+	public static String TI_BLOCKS_TABLE_NAME = "TreasureIsland_Blocks";
+	public static String TI_BASICINFO_TABLE_NAME = "TreasureIsland_BasicInfo";
 	
 	public static String RB_RESULTS_TABLE_NAME = "RegularBingo_Results";
 	public static String RB_PAYTABLE_NAME = "RegularBingo_Paytable";
@@ -222,6 +227,23 @@ public class EBingoModel {
 	public String getOGBasicInfoDBname() {
 		return this.buildDBTableName(OG_BASICINFO_TABLE_NAME);
 	}
+	
+	public String getTIResultsDBTableName() {
+		return this.buildDBTableName(TI_RESULTS_TABLE_NAME);
+	}
+	
+	public String getTIPaytableDBName() {
+		return this.buildDBTableName(TI_PAYTABLE_NAME);
+	}
+	
+	public String getTIBlocksDBname() {
+		return this.buildDBTableName(TI_BLOCKS_TABLE_NAME);
+	}
+	
+	public String getTIBasicInfoDBname() {
+		return this.buildDBTableName(TI_BASICINFO_TABLE_NAME);
+	}
+	
 	
 	public String getRBResultsDBTableName() {
 		return this.buildDBTableName(RB_RESULTS_TABLE_NAME);
@@ -421,7 +443,7 @@ public class EBingoModel {
 					+ e.getStackTrace().toString());
 		}
 		
-		this.log.writeLine("Reading Configurate File...Finished. Errors: "
+		this.log.writeLine("Reading Configuration File...Finished. Errors: "
 				+ this.errorLog.size()
 				+ ", Warnings: "
 				+ this.warningLog.size());
@@ -559,8 +581,9 @@ public class EBingoModel {
 				if (node.getNodeType() == Node.ELEMENT_NODE) {
 					Element e = (Element) node;
 				
-					// If in Lucky Clover mode
-					if (this.mode == Mode.LUCKY_CLOVER || this.mode == Mode.OLD_GLORY) {
+					// If in Lucky Clover, Old Glory or Treasure Island mode
+					if (this.mode == Mode.LUCKY_CLOVER 
+							|| this.mode == Mode.OLD_GLORY || this.mode == Mode.TREASURE_ISLAND) {
 						int numplays = -1;
 						int numcards = -1;
 						float wager = -1;
@@ -577,13 +600,25 @@ public class EBingoModel {
 						}
 					
 						if (numplays > 0 && numcards > 0 && wager > 0 && repeat > 0 && repeat <= MAX_REPEATS) {
-							Block b = new Block();
-							b.setNumPlays(numplays);
-							b.setNumCards(numcards);
-							b.setWager(wager);
-							b.setRepeat(repeat);
-							b.setBlockNum(i + 1);
-							this.blocks.add(b);
+							if (this.mode == Mode.TREASURE_ISLAND) {
+								if (numcards == numplays * 2 || numcards == (numplays * 2 - 1)) {
+									Block b = new Block();
+									b.setNumPlays(numplays);
+									b.setNumCards(numcards);
+									b.setWager(wager);
+									b.setRepeat(repeat);
+									b.setBlockNum(i + 1);
+									this.blocks.add(b);
+								}
+							} else {
+								Block b = new Block();
+								b.setNumPlays(numplays);
+								b.setNumCards(numcards);
+								b.setWager(wager);
+								b.setRepeat(repeat);
+								b.setBlockNum(i + 1);
+								this.blocks.add(b);
+							}
 						} else {
 							this.addErrorToLog2("Block[" + Integer.toString(i)
 									+ "]: All attributes must be greater than 0.");
@@ -684,6 +719,8 @@ public class EBingoModel {
 						
 						if (EBingoModel.this.mode == Mode.REGULAR) {
 							doRegularMode();
+						} else if (EBingoModel.this.mode == Mode.TREASURE_ISLAND) {
+							doTreasureIslandMode();
 						} else {
 							doEBingoMode();
 						}	
@@ -712,9 +749,24 @@ public class EBingoModel {
 		
 	}
 	
+	private void doTreasureIslandMode() throws Exception {
+		EBingoModel.this.currblock = EBingoModel.this.blocks.get(EBingoModel.this.getBlockIndex());
+		TreasureIslandGenerator tig = null;
+		
+		if (EBingoModel.this.currblock != null) {
+			tig = new TreasureIslandGenerator(this);
+		}
+		
+		EBingoModel.this.currbie = new BasicInfoEntry();
+		
+		tig.generatePlays();
+		
+	}
+	
 	private void doEBingoMode() throws Exception {
-		EBingoModel.this.currblock = EBingoModel.this.blocks
-				.get(EBingoModel.this.getBlockIndex());
+		if (EBingoModel.this.currblock != null)
+			EBingoModel.this.currblock = EBingoModel.this.blocks
+					.get(EBingoModel.this.getBlockIndex());
 		
 		EBingoModel.this.currbie = new BasicInfoEntry();
 		EBingoModel.this.currple = new PercentLosersEntry();
@@ -740,8 +792,10 @@ public class EBingoModel {
 					if (EBingoModel.this.genPlayResults) {
 						if (EBingoModel.this.mode == Mode.LUCKY_CLOVER)
 							Database.insertIntoTable(EBingoModel.this.getLCResultsDBTableName(), r);
-						else 
+						else if (EBingoModel.this.mode == Mode.OLD_GLORY)
 							Database.insertIntoTable(EBingoModel.this.getOGResultsDBTableName(), r);
+						else 
+							Database.insertIntoTable(EBingoModel.this.getTIResultsDBTableName(), r);
 					}
 					
 					// Increment play
@@ -821,6 +875,8 @@ public class EBingoModel {
 						Database.insertIntoTable(getLCBlocksDBname(), b);
 					else if (this.mode == Mode.OLD_GLORY)
 						Database.insertIntoTable(getOGBlocksDBname(), b);
+					else if (this.mode == Mode.TREASURE_ISLAND)
+						Database.insertIntoTable(getTIBlocksDBname(), b);
 					else 
 						Database.insertIntoTable(getRBBlocksDBName(), b);
 				}
@@ -851,6 +907,8 @@ public class EBingoModel {
 						Database.insertIntoTable(getLCPaytableDBName(), pe, hits);
 					else if (this.mode == Mode.OLD_GLORY)
 						Database.insertIntoTable(getOGPaytableDBName(), pe, hits);
+					else if (this.mode == Mode.TREASURE_ISLAND)
+						Database.insertIntoTable(getTIPaytableDBName(), pe, hits);
 					else 
 						Database.insertIntoTable(getRBPaytableDBName(), pe, hits);
 				}
@@ -939,10 +997,12 @@ public class EBingoModel {
 	//Simulator class
 	public class Simulator {
 		private EBingoModel model = null;
+		private TreasureIslandGenerator tig = null;
 		private Result r;
 		private RegularResult rr;
 		private int[] balls;
 		private long cardID = 0;
+		private long numcards = 0;
 		
 		private List<Integer> array1_15 = new ArrayList<Integer>(15);
 		private List<Integer> array16_30 = new ArrayList<Integer>(15);
@@ -953,6 +1013,7 @@ public class EBingoModel {
 		
 		public Simulator(EBingoModel model) {
 			this.model = model;
+			tig = new TreasureIslandGenerator(this.model);
 			
 			// Initialize the Lists
 			for (int i = 0; i < 15; i++) {
@@ -968,7 +1029,18 @@ public class EBingoModel {
 		}
 		
 		public Result generateResults() {
-			balls = new int[NUM_ON_CARDS];
+			// Set Treasure Island mode's total number of cards 
+			if (model.currblock != null) {
+				// Do not reset the number of cards every play
+				if (model.currblock.currplay == 0)
+					this.numcards = model.currblock.getNumCards();
+			}
+			
+			// Treasure Island mode draws 25 balls
+			if (model.getMode() == Mode.TREASURE_ISLAND)
+				balls = new int[25];
+			else 
+				balls = new int[NUM_ON_CARDS];
 			
 			if (model.currblock != null) {
 				r = new Result(model.currblock.getNumCards());
@@ -979,9 +1051,18 @@ public class EBingoModel {
 			try {
 				generateBalls();
 				
-				for (int i = 0; i < r.getNumCards(); i++) {
-					Card c = generateCard();
-					r.addCard(c);
+				if (model.getMode() == Mode.TREASURE_ISLAND) {
+					for (int i = 0; i < 2 && i < this.numcards; i++) {
+						Card c = generateCard();
+						r.addCard(c);
+						this.numcards --;
+					}
+				} else {
+				
+					for (int i = 0; i < r.getNumCards(); i++) {
+						Card c = generateCard();
+						r.addCard(c);
+					}
 				}
 				
 				// Cheat balls and cards here
@@ -992,13 +1073,15 @@ public class EBingoModel {
 				 * 
 				 */
 			} catch (Exception e) {
-				log.writeLine("Genration of Balls and Cards encountered problem: ");
+				log.writeLine("Generation of Balls and Cards encountered problem: ");
 				log.writeLine(e.getMessage());
+				e.printStackTrace();
+				model.setError();
 				model.stop();
 			}
 			
 			// Loop through all the cards 
-			for (int i = 0; i < r.numcards; i++) {
+			for (int i = 0; i < r.cards.size(); i++) {
 				int outcome = generateOutCome(r.getCard(i));
 				
 				calculatePayout(outcome, i);
@@ -1090,35 +1173,48 @@ public class EBingoModel {
 		}
 		
 		private void generateBalls() {
-			// Generate the ball numbers under "B"
-			Collections.shuffle(array1_15);
-			for (int i = 0; i < 5; i++)
-				balls[i] = array1_15.get(i);
-			
-			// Generate the ball numbers under "I" 
-			Collections.shuffle(array16_30);
-			for (int i = 5; i < 10; i++)
-				balls[i] = array16_30.get(i - 5);
-			
-			// Generate the ball numbers under "N" 
-			Collections.shuffle(array31_45);
-			for (int i = 10; i < 14; i++) 
-				balls[i] = array31_45.get(i - 10);
-			
-			// Generate the ball numbers under "G" 
-			Collections.shuffle(array46_60);
-			for (int i = 14; i < 19; i++) 
-				balls[i] = array46_60.get(i - 14);
-			
-			// Generate the ball numbers under "O"
-			Collections.shuffle(array61_75);
-			for (int i = 19; i < 24; i++) 
-				balls[i] = array61_75.get(i - 19);
-			
-			// Shuffle the balls array
-			shuffleArray(balls);
+			// If it's in Treasure Island Mode
+			if (EBingoModel.this.getMode() == Mode.TREASURE_ISLAND) {
+				generateTIBalls();
+			} else { 
+				// Generate the ball numbers under "B"
+				Collections.shuffle(array1_15);
+				for (int i = 0; i < 5; i++)
+					balls[i] = array1_15.get(i);
+				
+				// Generate the ball numbers under "I" 
+				Collections.shuffle(array16_30);
+				for (int i = 5; i < 10; i++)
+					balls[i] = array16_30.get(i - 5);
+				
+				// Generate the ball numbers under "N" 
+				Collections.shuffle(array31_45);
+				for (int i = 10; i < 14; i++) 
+					balls[i] = array31_45.get(i - 10);
+				
+				// Generate the ball numbers under "G" 
+				Collections.shuffle(array46_60);
+				for (int i = 14; i < 19; i++) 
+					balls[i] = array46_60.get(i - 14);
+				
+				// Generate the ball numbers under "O"
+				Collections.shuffle(array61_75);
+				for (int i = 19; i < 24; i++) 
+					balls[i] = array61_75.get(i - 19);
+				
+				// Shuffle the balls array
+				shuffleArray(balls);
+			}	
 			
 			r.setBalls(balls);
+		}
+		
+		private void generateTIBalls() {
+			Collections.shuffle(this.array1_75);
+			
+			for (int i = 0; i < this.balls.length; i++) {
+				balls[i] = this.array1_75.get(i);
+			}
 		}
 		
 		private Card generateCard() {
@@ -1207,8 +1303,25 @@ public class EBingoModel {
 					// Set the card to be a winning card
 					r.getCard(cardindex).setWin(true);
 					
+					// *2 payout if playing 2 cards in Treasure Island mode
+					if (model.getMode() == Mode.TREASURE_ISLAND
+							&& cardindex == 1 ) {
+						int payout = 0;
+						if (model.paytable.get(i).getName().equalsIgnoreCase("letter_x")) 
+							payout = 400;
+					    else 
+							payout = model.paytable.get(i).getPayout() * 2;
+					    
+					    if (payout > bestpayout) {
+					    	besthitindex = i;
+							bestpayout = payout;
+							r.getCard(cardindex).setCreditsWon(bestpayout);
+							r.getCard(cardindex).setWinName(EBingoModel.this.paytable.get(i).getName());
+					    }
+						
+						
 					// Update the payout and winname of the card 
-					if (EBingoModel.this.paytable.get(i).getPayout() > bestpayout) {
+					} else if (EBingoModel.this.paytable.get(i).getPayout() > bestpayout) {
 						besthitindex = i;
 						bestpayout = EBingoModel.this.paytable.get(i).getPayout();
 						r.getCard(cardindex).setCreditsWon(bestpayout);
@@ -1216,8 +1329,9 @@ public class EBingoModel {
 					}
 				
 				// Find the red square locations if the outcome has a red square 
-				//	(skip if in Regular Bingo mode or the card already matches a win pattern)		
-				} else if (model.mode != Mode.REGULAR && !r.getCard(cardindex).isWin && num1sintmp == num1sinwin - 1) {
+				//	(skip if in Regular Bingo mode or Treasure Island mode or the card already matches a win pattern)		
+				} else if (model.getMode() != Mode.REGULAR && model.getMode() != Mode.TREASURE_ISLAND
+						&& !r.getCard(cardindex).isWin && num1sintmp == num1sinwin - 1) {
 					findRedSquares(cardindex, tmp, winpattern);
 				}
 			}
@@ -1823,6 +1937,16 @@ public class EBingoModel {
 			return this.playerswon;
 		}
 		
+		public List<Double> getPlayerWinAmount() {
+			List<Double> winamounts = new ArrayList<Double>();
+			
+			for (int i : this.playerswon) {
+				winamounts.add(this.players.get(i).getDollarWon());
+			}
+			
+			return winamounts;
+		}
+		
 		public Player getPlayer(int index) {
 			return this.players.get(index);
 		}
@@ -1883,6 +2007,7 @@ public class EBingoModel {
 		private long id = 0;
 		private int creditswon = 0;
 		private String winname = "";
+		private short ti_id = 1;
 		
 		private boolean isWin = false;
 		private short numredsquares = 0;
@@ -1892,6 +2017,10 @@ public class EBingoModel {
 		
 		public long getID() {
 			return id;
+		}
+		
+		public short getTIID() {
+			return this.ti_id;
 		}
 
 		public int[] getNumbersOnCard() {
@@ -1949,6 +2078,10 @@ public class EBingoModel {
 		
 		public void setID(long value) {
 			this.id = value;
+		}
+		
+		public void setTIID(short value) {
+			this.ti_id = value;
 		}
 		
 		public void setNumberOnCard(int index, int value) {
@@ -2084,6 +2217,10 @@ public class EBingoModel {
 			float wagered = r.numcards * r.wager;
 			int numwinningcards = 0;
 			
+			if (EBingoModel.this.getMode() == Mode.TREASURE_ISLAND) {
+				wagered = r.wager * r.getCards().size();
+			}
+			
 			if (r.getCreditsWon() > 0) {
 				if (r.getDollarsWon() - wagered < 0) {
 					this.incrementLDWs();
@@ -2120,8 +2257,11 @@ public class EBingoModel {
 				Database.flushBatch();
 				if (EBingoModel.this.mode == Mode.LUCKY_CLOVER)
 					Database.insertIntoTable(getLCBasicInfoDBname(), currbie, blocks.size());
-				else 
+				else if (EBingoModel.this.mode == Mode.OLD_GLORY)
 					Database.insertIntoTable(getOGBasicInfoDBname(), currbie, blocks.size());
+				else if (EBingoModel.this.mode == Mode.TREASURE_ISLAND)
+					Database.insertIntoTable(EBingoModel.this.getTIBasicInfoDBname(), currbie, blocks.size());
+					
 				Database.flushBatch();
 			} catch (Exception e) {
 				log.writeLine("Inserting BasicInfoEntry encountered problem: " + e.getMessage());
@@ -2166,7 +2306,12 @@ public class EBingoModel {
 			if (EBingoModel.this.currblock != null) {
 				this.id = currblock.blocknum;
 				this.numplays = EBingoModel.this.currblock.numplays;
-				this.numcards = EBingoModel.this.currblock.numcards;
+				
+				if (EBingoModel.this.getMode() == Mode.TREASURE_ISLAND) {
+					this.numcards = 2;
+				}
+					this.numcards = EBingoModel.this.currblock.numcards;
+				
 				this.wager = EBingoModel.this.currblock.wager;
 				this.repeats = EBingoModel.this.currblock.repeat;
 			
@@ -2314,6 +2459,16 @@ public class EBingoModel {
 		}
 		
 		public void updatePLE(Result r) {
+			// If there is only one card played in Treasure Island mode
+			if (EBingoModel.this.getMode() == Mode.TREASURE_ISLAND) {
+				// If there is only one card played in Treasure Island mode
+				if (r.getCards().size() == 1) 
+					this.bet = 1 * this.wager;
+				// If there two cards are played in Treasure Island mode
+				else 
+					this.bet = 2 * this.wager;
+			}
+			
 			// Update balance
 			this.addBalance((r.creditswon * this.wager) -  this.bet);
 			

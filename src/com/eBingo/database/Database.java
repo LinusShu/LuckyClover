@@ -245,7 +245,7 @@ public class Database {
 			}
 			
 			// Prepare cards query string
-			for (int i = 0; i < r.getNumCards(); i++) {
+			for (int i = 0; i < r.getCards().size(); i++) {
 				cards += ", CARD" + i + "_ID" + " bigint NOT NULL"
 						+ ", CARD" + i + "_DOLLARWON" + " double NOT NULL"
 						+ ", CARD" + i + "_WINNAME" + " varchar(30) NOT NULL"
@@ -303,7 +303,7 @@ public class Database {
 				index++;
 			}
 			
-			for (int i = 0; i < r.getNumCards(); i++) {
+			for (int i = 0; i < r.getCards().size(); i++) {
 				Card c = r.getCard(i);
 				
 				st.setLong(index, c.getID());
@@ -350,23 +350,12 @@ public class Database {
 		// Create the table if does not exist yet
 		if (!Database.doesTableExist(tableName)) {
 			
-			// Prepare cards query string
+		 	// Prepare cards query string
 			for (int i = 0; i < rr.getNumPlayers(); i++) {
-				
-				players += ", P" + i + "_WON double NOT NULL"
-						+ ", P" + i + "_CARDSWON varchar(30) NOT NULL"
-						+ ", P" + i + "_WINNAMES varchar(50) NOT NULL";
-				
-				playersI += ", P" + i + "_WON"
-						+ ", P" + i + "_CARDSWON"
-						+ ", P" + i + "_WINNAMES";
-				
-				playersQ += ", ?, ?, ?";
 				
 				for (int j = 0; j < rr.getNumCards(); j++ ) {
 						
 					players	+= ", P" + i + "_CARD" + j + "_NUMS varchar(100) NOT NULL";
-					
 					
 					playersI += ", P" + i + "_CARD" + j + "_NUMS";
 					
@@ -382,7 +371,8 @@ public class Database {
 					+ "NUMOFPLAYERS integer NOT NULL, "
 					+ "WAGER float NOT NULL, "
 					+ "BALLS varchar(300) NOT NULL, "
-					+ "PLAYERWON varchar(50) NOT NULL"
+					+ "PLAYERWON varchar(50) NOT NULL, "
+					+ "WINAMOUNT varchar(100) NOT NULL"
 					+ players + ") ";
 			
 			Database.createTable(tableName, query);
@@ -390,8 +380,8 @@ public class Database {
 		
 		// Insert the result if table already exists
 		String query = "insert into " + tableName
-				+ " (PLAYID, BLOCKID, NUMOFCARDS, NUMOFPLAYERS, WAGER, BALLS, PLAYERWON" + playersI + ") "
-				+ "values(?, ?, ?, ?, ?, ?, ?" + playersQ + ")";
+				+ " (PLAYID, BLOCKID, NUMOFCARDS, NUMOFPLAYERS, WAGER, BALLS, PLAYERWON, WINAMOUNT" + playersI + ") "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?" + playersQ + ")";
 		
 		try {
 			if (st == null) 
@@ -404,21 +394,13 @@ public class Database {
 			st.setFloat(5, rr.getWager());
 			st.setString(6, Arrays.toString(rr.getBalls()));
 			st.setString(7, rr.getPlayersWon().toString());
+			st.setString(8, rr.getPlayerWinAmount().toString());
 			
-			int index = 8;
+			int index = 9;
 			
 			for (int i = 0; i < rr.getNumPlayers(); i++) {
 				Player p = rr.getPlayer(i);
 				
-				st.setDouble(index, p.getDollarWon());
-				index++;
-				
-				st.setString(index, p.getCardsWon().toString());
-				index++;
-				
-				st.setString(index, p.getWinNames().toString());
-				index++;
-			
 				for (int j = 0; j < p.getNumCards(); j++) {
 					st.setString(index, Arrays.toString(p.getCard(j).getNumbersOnCard()));
 					index++;

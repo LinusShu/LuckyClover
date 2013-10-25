@@ -28,7 +28,8 @@ public class EBingoModel {
 	public static final int NUM_ON_CARDS = 24;
 
 	public enum Mode {
-		LUCKY_CLOVER, OLD_GLORY, TREASURE_ISLAND, REGULAR
+		LUCKY_CLOVER, OLD_GLORY, TREASURE_ISLAND, 
+		TROPICAL_TREASURES, REGULAR
 	}
 	
 	public static String LC_RESULTS_TABLE_NAME = "LuckyCLover_Results";
@@ -45,6 +46,11 @@ public class EBingoModel {
 	public static String TI_PAYTABLE_NAME = "TreasueIsland_Paytable";
 	public static String TI_BLOCKS_TABLE_NAME = "TreasureIsland_Blocks";
 	public static String TI_BASICINFO_TABLE_NAME = "TreasureIsland_BasicInfo";
+	
+	public static String TT_RESULTS_TABLE_NAME = "TropicalTreasures_Results";
+	public static String TT_PAYTABLE_NAME = "TropicalTreasues_Paytable";
+	public static String TT_BLOCKS_TABLE_NAME = "TropicalTreasures_Blocks";
+	public static String TT_BASICINFO_TABLE_NAME = "TropicalTreasure_BasicInfo";
 	
 	public static String RB_RESULTS_TABLE_NAME = "RegularBingo_Results";
 	public static String RB_PAYTABLE_NAME = "RegularBingo_Paytable";
@@ -70,6 +76,7 @@ public class EBingoModel {
 	private int currplayed = 0;
 	
 	private Block currblock = null;
+	private TTBlock currttblock = null;
 	private int currblockindex = 0;
 	private boolean repeatcomplete = false;
 	private boolean blockcomplete = false;
@@ -90,8 +97,11 @@ public class EBingoModel {
 	private List<String> warningLog2 = new ArrayList<String>();
 	
 	private List<PaytableEntry> paytable = new ArrayList<PaytableEntry>();
+	private List<TTPaytableEntry> ttpaytable = new ArrayList<TTPaytableEntry>();
 	private List<Block> blocks = new ArrayList<Block>();
+	private List<TTBlock> ttblocks = new ArrayList<TTBlock>();
 	private List<Integer> hittable = new ArrayList<Integer>();
+	private List<Integer> bonushittable = new ArrayList<Integer>();
 	
 	private EBingoModel() {
 		this.log = new EBingoLog("log");
@@ -188,6 +198,10 @@ public class EBingoModel {
 		this.hittable.set(index, hittable.get(index) + 1);
 	}
 	
+	public void incrementBonusHits(int index) {
+		this.bonushittable.set(index, bonushittable.get(index) + 1);
+	}
+	
 	public String getDBName() {
 		return Database.getDBname();
 	}
@@ -244,6 +258,21 @@ public class EBingoModel {
 		return this.buildDBTableName(TI_BASICINFO_TABLE_NAME);
 	}
 	
+	public String getTTResultsDBTableName() {
+		return this.buildDBTableName(TT_RESULTS_TABLE_NAME);
+	}
+	
+	public String getTTPaytableDBName() {
+		return this.buildDBTableName(TT_PAYTABLE_NAME);
+	}
+	
+	public String getTTBlocksDBname() {
+		return this.buildDBTableName(TT_BLOCKS_TABLE_NAME);
+	}
+	
+	public String getTTBasicInfoDBname() {
+		return this.buildDBTableName(TT_BASICINFO_TABLE_NAME);
+	}
 	
 	public String getRBResultsDBTableName() {
 		return this.buildDBTableName(RB_RESULTS_TABLE_NAME);
@@ -363,19 +392,36 @@ public class EBingoModel {
 	
 	protected void generateDBTableName() {
 		this.setTableSuffix();
-		if (this.mode == Mode.LUCKY_CLOVER) {
+		
+		switch (this.mode) {
+		case LUCKY_CLOVER:
 			this.log.writeLine("Set Paytable DB Table Name: " + this.getLCPaytableDBName());
 			this.log.writeLine("Set Blocks DB Table Name: " + this.getLCBlocksDBname());
 			this.log.writeLine("Set Results DB Table Name: " + this.getLCResultsDBTableName());
-		} else if (this.mode == Mode.OLD_GLORY) {
+			break;
+		case OLD_GLORY:
 			this.log.writeLine("Set Paytable DB Table Name: " + this.getOGPaytableDBName());
 			this.log.writeLine("Set Blocks DB Table Name: " + this.getOGBlocksDBname());
 			this.log.writeLine("Set Results DB Table Name: " + this.getOGResultsDBTableName());
-		} else {
+			break;
+		case TREASURE_ISLAND:
+			this.log.writeLine("Set Paytable DB Table Name: " + this.getTIPaytableDBName());
+			this.log.writeLine("Set Blocks DB Table Name: " + this.getTIBlocksDBname());
+			this.log.writeLine("Set Results DB Table Name: " + this.getTIResultsDBTableName());
+			break;
+		case TROPICAL_TREASURES:
+			this.log.writeLine("Set Paytable DB Table Name: " + this.getTTPaytableDBName());
+			this.log.writeLine("Set Blocks DB Table Name: " + this.getTTBlocksDBname());
+			this.log.writeLine("Set Results DB Table Name: " + this.getTTResultsDBTableName());
+			break;
+		default:
 			this.log.writeLine("Set Paytable DB Table Name: " + this.getRBPaytableDBName());
 			this.log.writeLine("Set Blocks DB Table Name: " + this.getRBBlocksDBName());
 			this.log.writeLine("Set Results DB Table Name: " + this.getRBResultsDBTableName());
+			break;
+			
 		}
+			
 	}
 	
 	public void addErrorToLog(String err) {
@@ -409,6 +455,7 @@ public class EBingoModel {
 		this.error = false;
 		
 		this.currblock = null;
+		this.currttblock = null;
 		this.currblockindex = 0;
 		this.currplayed= 0;
 		
@@ -417,8 +464,11 @@ public class EBingoModel {
 		this.currgre = null;
 		
 		this.paytable.clear();
+		this.ttpaytable.clear();
 		this.blocks.clear();
+		this.ttblocks.clear();
 		this.hittable.clear();
+		this.bonushittable.clear();
 		
 		this.errorLog.clear();
 		this.warningLog.clear();
@@ -505,30 +555,60 @@ public class EBingoModel {
 			if (node.getNodeType() == Node.ELEMENT_NODE) {
 				Element e = (Element) node;
 				
-				String winCode = e.getAttribute("winCode");
-				String name = e.getAttribute("name");
-				int winPattern, payout;
-				
-				try {
-					winPattern = Integer.parseInt(e.getAttribute("winPattern"));
-					payout = Integer.parseInt(e.getAttribute("payout"));
-				} catch (NumberFormatException nfe) {
-					this.addErrorToLog("PaytableEntry["
-							+ Integer.toString(i)
-							+ "]: Invalid value for winPattern/payout.");
-					winPattern = payout = -1;
-				}
-				
-				if (winPattern > 0 && payout > 0) {
-					PaytableEntry pe = new PaytableEntry();
-					pe.setWinCode(winCode);
-					pe.setName(name);
-					pe.setWinPattern(winPattern);
-					pe.setPayout(payout);
-					pe.populateBitPattern();
-					this.paytable.add(pe);
-					this.hittable.add(0);
-				}
+				// If in Tropical Treasures Mode
+				if (this.mode == Mode.TROPICAL_TREASURES) {
+					String winCode = e.getAttribute("winCode");
+					int picks, hits;
+					float payout;
+					
+					try {
+						picks = Integer.parseInt(e.getAttribute("picks"));
+						hits = Integer.parseInt(e.getAttribute("hits"));
+						payout = Float.parseFloat(e.getAttribute("payout"));
+					} catch (NumberFormatException nfe) {
+						this.addErrorToLog("PaytableEnetry[" + Integer.toString(i)
+								+ "]: Invalid value for picks/hits/payout.");
+						picks = hits = -1;
+						payout = -1;
+					}
+					
+					if (picks > 0 && hits > 0 && payout > 0) {
+						TTPaytableEntry tpe = new TTPaytableEntry();
+						tpe.setWinCode(winCode);
+						tpe.setPicks(picks);
+						tpe.setHits(hits);
+						tpe.setPayout(payout);
+						this.ttpaytable.add(tpe);
+						this.hittable.add(0);
+						this.bonushittable.add(0);
+					}
+					
+				} else {
+					String winCode = e.getAttribute("winCode");
+					String name = e.getAttribute("name");
+					int winPattern, payout;
+					
+					try {
+						winPattern = Integer.parseInt(e.getAttribute("winPattern"));
+						payout = Integer.parseInt(e.getAttribute("payout"));
+					} catch (NumberFormatException nfe) {
+						this.addErrorToLog("PaytableEntry["
+								+ Integer.toString(i)
+								+ "]: Invalid value for winPattern/payout.");
+						winPattern = payout = -1;
+					}
+					
+					if (winPattern > 0 && payout > 0) {
+						PaytableEntry pe = new PaytableEntry();
+						pe.setWinCode(winCode);
+						pe.setName(name);
+						pe.setWinPattern(winPattern);
+						pe.setPayout(payout);
+						pe.populateBitPattern();
+						this.paytable.add(pe);
+						this.hittable.add(0);
+					}
+				}	
 			}
 		}
 	}
@@ -543,37 +623,69 @@ public class EBingoModel {
 				if (node.getNodeType() == Node.ELEMENT_NODE) {
 					Element e = (Element) node;
 					
-					int numcards = -1;
-					float wager = -1;
-					double bankroll = -1;
-					int repeat = -1;
-					
-					try {
-						numcards = Integer.parseInt(e.getAttribute("numcards"));
-						wager = Float.parseFloat(e.getAttribute("wager"));
-						bankroll = Double.parseDouble(e.getAttribute("bankroll"));
-						repeat = Integer.parseInt(e.getAttribute("repeat"));
-					} catch (NumberFormatException nfe) {
-						this.addErrorToLog2("Block[" + Integer.toString(i)
-								+ "]: Invalid vallue(s) for this block.");
-					}
-					
-					if (numcards > 0 && wager > 0 && bankroll > 0 && 
-							repeat > 0 && repeat <= MAX_REPEATS) {
-						Block b = new GRBlock();
-						b.setNumCards(numcards);
-						b.setWager(wager);
-						b.setBankroll(bankroll);
-						b.setRepeat(repeat);
-						b.setBlockNum(i + 1);
-						b.setCurrBalance(bankroll);
-						this.blocks.add(b);
+					// If simulating gamblers ruin in Tropical Treasure Bingo
+					if (this.mode == Mode.TROPICAL_TREASURES) {
+						int picks = -1;
+						boolean fixedcard = false;
+						float wager = -1;
+						double bankroll = -1;
+						int repeat = -1;
+						
+						try {
+							picks = Integer.parseInt(e.getAttribute("picks"));
+							fixedcard = Boolean.parseBoolean(e.getAttribute("fixedcard"));
+							wager = Float.parseFloat(e.getAttribute("wager"));
+							bankroll = Double.parseDouble(e.getAttribute("bankroll"));
+							repeat = Integer.parseInt(e.getAttribute("repeat"));
+						} catch (NumberFormatException nfe) {
+							this.addErrorToLog2("Block[" + Integer.toString(i)
+									+ "]: Invalid values(s) for this block.");
+						}
+						
+						if (picks > 0 && wager > 0 && bankroll > 0
+								&& repeat > 0 && repeat <= MAX_REPEATS) {
+							TTBlock b = new TTGRBlock(); 
+							b.setWager(wager);
+							b.setBankroll(bankroll);
+							b.setRepeat(repeat);
+							b.setBlockNum(i + 1);
+							b.setCurrBalance(bankroll);
+							b.setFixedCard(fixedcard);
+							this.ttblocks.add(b);
+						}
+						
+					} else {
+						int numcards = -1;
+						float wager = -1;
+						double bankroll = -1;
+						int repeat = -1;
+						
+						try {
+							numcards = Integer.parseInt(e.getAttribute("numcards"));
+							wager = Float.parseFloat(e.getAttribute("wager"));
+							bankroll = Double.parseDouble(e.getAttribute("bankroll"));
+							repeat = Integer.parseInt(e.getAttribute("repeat"));
+						} catch (NumberFormatException nfe) {
+							this.addErrorToLog2("Block[" + Integer.toString(i)
+									+ "]: Invalid vallue(s) for this block.");
+						}
+						
+						if (numcards > 0 && wager > 0 && bankroll > 0 && 
+								repeat > 0 && repeat <= MAX_REPEATS) {
+							Block b = new GRBlock();
+							b.setNumCards(numcards);
+							b.setWager(wager);
+							b.setBankroll(bankroll);
+							b.setRepeat(repeat);
+							b.setBlockNum(i + 1);
+							b.setCurrBalance(bankroll);
+							this.blocks.add(b);
+						}
 					}
 				}
 			}
 			
 		} else {
-			
 			NodeList list = doc.getElementsByTagName("block");
 		
 			for (int i = 0; i < list.getLength(); i++) {
@@ -642,6 +754,7 @@ public class EBingoModel {
 						} catch (NumberFormatException nfe) {
 							this.addErrorToLog2("Block[" + Integer.toString(i)
 									+ "]: Invalid vaule(s) for this block.");
+							nfe.printStackTrace();
 						}
 					
 						if (numplays > 0 && numcards > 0 && numplayers > 0 
@@ -654,6 +767,40 @@ public class EBingoModel {
 							rb.setBlockNum(i + 1);
 							rb.calculatePayBack();
 							this.blocks.add(rb);
+						} else {
+							this.addErrorToLog2("Block[" + Integer.toString(i)
+									+ "]: All attributes must be greater than 0.");
+						}
+					// If simulating Tropical Treasures Bingo
+					} else if (this.mode == Mode.TROPICAL_TREASURES) {
+						int numplays = -1;
+						boolean fixedcard = false;
+						int picks = -1;
+						float wager = -1;
+						int repeat = -1;
+						
+						try {
+							numplays = Integer.parseInt(e.getAttribute("numplays"));
+							fixedcard = Boolean.parseBoolean(e.getAttribute("fixedcard"));
+							picks = Integer.parseInt(e.getAttribute("picks"));
+							wager = Float.parseFloat(e.getAttribute("wager"));
+							repeat = Integer.parseInt(e.getAttribute("repeat"));
+						} catch (NumberFormatException nfe) {
+							this.addErrorToLog2("Block[" + Integer.toString(i)
+									+ "]: Invalid value(s) for this block.");
+							nfe.printStackTrace();
+						}
+						
+						if (numplays > 0 && picks > 0 && wager > 0
+								&& repeat > 0 && repeat <= MAX_REPEATS) {
+							TTBlock ttb = new TTBlock();
+							ttb.setBlockNum(i + 1);
+							ttb.setNumPlays(numplays);
+							ttb.setFixedCard(fixedcard);
+							ttb.setPicks(picks);
+							ttb.setWager(wager);
+							ttb.setRepeat(repeat);
+							this.ttblocks.add(ttb);
 						} else {
 							this.addErrorToLog2("Block[" + Integer.toString(i)
 									+ "]: All attributes must be greater than 0.");
@@ -673,8 +820,13 @@ public class EBingoModel {
 	private int calculateTotalPlays() {
 		int tp = 0;
 		
-		for (Block b : this.blocks)
-			tp += b.getNumPlays() * b.getRepeat();
+		if (this.mode == Mode.TROPICAL_TREASURES) {
+			for (TTBlock ttb : this.ttblocks) 
+				tp += ttb.getNumPlays() * ttb.getRepeat();
+		} else {
+			for (Block b : this.blocks)
+				tp += b.getNumPlays() * b.getRepeat();
+		}
 		
 		return tp;
 	}
@@ -721,6 +873,8 @@ public class EBingoModel {
 							doRegularMode();
 						} else if (EBingoModel.this.mode == Mode.TREASURE_ISLAND) {
 							doTreasureIslandMode();
+						} else if (EBingoModel.this.mode == Mode.TROPICAL_TREASURES) {
+							doTropicalTreasuresMode();
 						} else {
 							doEBingoMode();
 						}	
@@ -743,7 +897,6 @@ public class EBingoModel {
 				EBingoModel.this.log.writeLine("END OF PRODUCTION");
 			}
 		};
-		
 		t.setPriority(Thread.MAX_PRIORITY);
 		t.start();
 		
@@ -824,6 +977,57 @@ public class EBingoModel {
 		} // If every block is done
 	}
 	
+	private void doTropicalTreasuresMode() throws Exception {
+		EBingoModel.this.currttblock = EBingoModel.this.ttblocks
+				.get(EBingoModel.this.getBlockIndex());
+		
+		EBingoModel.this.currbie = new BasicInfoEntry();
+		
+		while (EBingoModel.this.currttblock != null
+				&& !EBingoModel.this.cancelled) {
+			
+			if (!EBingoModel.this.paused) {
+				TropicalTreasuresResult ttr = simulator.generateTTResults();
+				
+				if (ttr != null) {
+					ttr.setRecordNumber(EBingoModel.this.currplayed + 1);
+					ttr.setBlockNumber(EBingoModel.this.currttblock.getBlockNum());
+					ttr.setNumPlays(EBingoModel.this.currttblock.getNumPlays());
+					ttr.setWager(EBingoModel.this.currttblock.getWager());	
+					
+					//EBingoModel.this.currbie.updateBIE(r);
+					
+					if (EBingoModel.this.genPlayResults) {
+						Database.insertIntoTable(EBingoModel.this.getTTResultsDBTableName(), ttr);
+					}
+					
+					// Increment play
+					if (EBingoModel.this.genGambersRuin) {
+					//	EBingoModel.this.incrementGRCurrPlay(r);
+					} else {
+						//TODO update bunch of "Entries" here
+						EBingoModel.this.incrementCurrPlay();
+					//	EBingoModel.this.currple.updatePLE(r);
+					}
+					
+
+					if (this.repeatcomplete) {
+						this.repeatcomplete = false;
+					}
+				
+					if (EBingoModel.this.blockcomplete) {
+						if (!EBingoModel.this.genGambersRuin) {
+							//currple.flushPLE();
+						}
+						Database.flushBatch();
+						EBingoModel.this.blockcomplete = false;
+					}
+					
+				} // If result generated is valid 
+			} // not paused
+		} // while not empty
+	}
+	
 	private void doRegularMode() throws Exception {
 		EBingoModel.this.currblock = EBingoModel.this.blocks
 				.get(EBingoModel.this.getBlockIndex());
@@ -844,8 +1048,7 @@ public class EBingoModel {
 					rr.setWager(EBingoModel.this.currblock.getWager());	
 					
 					
-					//EBingoModel.this.currbie.updateBIE(rr);
-					//TODO update bunch of "Entries" here
+					//EBingoModel.this.currbie.updateBIE(ttr);
 					
 					if (EBingoModel.this.genPlayResults) 
 						Database.insertIntoTable(EBingoModel.this.getRBResultsDBTableName(), rr);
@@ -866,6 +1069,7 @@ public class EBingoModel {
 			Database.createConnection();
 			Database.setMode(this.mode);
 			
+			Database.flushBatch();
 			if (EBingoModel.this.blocks != null
 					&& EBingoModel.this.blocks.size() > 0) {
 				for (int i = 0; i < EBingoModel.this.blocks.size(); i++) {
@@ -877,6 +1081,10 @@ public class EBingoModel {
 						Database.insertIntoTable(getOGBlocksDBname(), b);
 					else if (this.mode == Mode.TREASURE_ISLAND)
 						Database.insertIntoTable(getTIBlocksDBname(), b);
+					else if (this.mode == Mode.TROPICAL_TREASURES) {
+						TTBlock ttb = EBingoModel.this.ttblocks.get(i);
+						Database.insertIntoTable(getTTBlocksDBname(), ttb);	
+					}
 					else 
 						Database.insertIntoTable(getRBBlocksDBName(), b);
 				}
@@ -888,6 +1096,7 @@ public class EBingoModel {
 			EBingoModel.this.log.writeLine("ERROR: "
 					+ "Failed to connect to DB while creating blocks tables. "
 					+ "Message: " + e.getMessage());
+			e.printStackTrace();
 		}
 
 	}
@@ -895,7 +1104,20 @@ public class EBingoModel {
 	private void finalizeDB() {
 		// Create paytable database table
 		try {
-			if (EBingoModel.this.paytable != null
+			
+			// If in Tropical Treasures Bingo mode
+			if (EBingoModel.this.ttpaytable != null
+					&& EBingoModel.this.ttpaytable.size() > 0) {
+				for (int i = 0; i < EBingoModel.this.ttpaytable.size(); i++) {
+					TTPaytableEntry tpe = EBingoModel.this.ttpaytable.get(i);
+					int hits = EBingoModel.this.hittable.get(i);
+					int bonushits = EBingoModel.this.bonushittable.get(i);
+					
+					Database.insertIntoTable(getTTPaytableDBName(), tpe, hits, bonushits);
+				}
+				
+			// If in other EBingo mode
+			} else if (EBingoModel.this.paytable != null
 					&& EBingoModel.this.paytable.size() > 0) {
 				for (int i = 0; i < EBingoModel.this.paytable.size(); i++) {
 					PaytableEntry pe = EBingoModel.this.paytable.get(i);
@@ -912,14 +1134,16 @@ public class EBingoModel {
 					else 
 						Database.insertIntoTable(getRBPaytableDBName(), pe, hits);
 				}
-				Database.flushBatch();
-				System.out.println("Paytable inserted!");
 			}
+			
+			Database.flushBatch();
+			System.out.println("Paytable inserted!");
 		} catch (Exception e) {
 			EBingoModel.this.setError();
 			EBingoModel.this.log.writeLine("ERROR: "
 					+ "Failed to connect to DB while creating paytable tables. "
 					+ "Message: " + e.getMessage());
+			e.printStackTrace();
 		}
 		
 		// Close DB Connection
@@ -927,6 +1151,7 @@ public class EBingoModel {
 			Database.shutdownConnection();
 			System.out.println("DB connection shutted down");
 		} catch (SQLException e) {
+			EBingoModel.this.setError();
 			EBingoModel.this.log.writeLine("ERROR: Closing database encountered error. "
 					+ "Message: " + e.getMessage());
 			e.printStackTrace();
@@ -935,30 +1160,56 @@ public class EBingoModel {
 	
 	private void incrementCurrPlay() {
 		this.currplayed++;
-		//TODO repeat/block control flow here
-		// If the current block runs out of plays
-		if (this.currblock.incrementCurrPlay()) {
-			// If the current block needs to be repeated
-			if (this.currblock.currrepeat < this.currblock.repeat) {
-				currblock.incrementCurrRepeat();
-				this.repeatcomplete = true;
-				currblock.reset();
-			// If the block is done
-			} else {
-				currblockindex++;
-				this.blockcomplete = true;
-				
-				currbie.flushBIE();
-				
-				// If there are more blocks
-				if (currblockindex < blocks.size()) {
-					currblock = blocks.get(currblockindex);
+		
+		// If in Tropical Treasures Bingo mode
+		if (this.mode == Mode.TROPICAL_TREASURES) {
+			// If the current block runs out of plays
+			if (this.currttblock.incrementCurrPlay()) {
+				// If the current block needs to be repeated
+				if (this.currttblock.currrepeat < this.currttblock.repeat) {
+					currttblock.incrementCurrRepeat();
+					this.repeatcomplete = true;
+					currttblock.reset();
+				// If the block is done
 				} else {
-					this.currblock = null;
+					currblockindex++;
+					this.blockcomplete = true;
+					
+					//currbie.flushBIE();
+					
+					// If there are more blocks
+					if (currblockindex < ttblocks.size()) {
+						currttblock = ttblocks.get(currblockindex);
+					} else {
+						this.currttblock = null;
+					}
+				}
+			}
+		// If in other modes	
+		} else {
+			// If the current block runs out of plays
+			if (this.currblock.incrementCurrPlay()) {
+				// If the current block needs to be repeated
+				if (this.currblock.currrepeat < this.currblock.repeat) {
+					currblock.incrementCurrRepeat();
+					this.repeatcomplete = true;
+					currblock.reset();
+				// If the block is done
+				} else {
+					currblockindex++;
+					this.blockcomplete = true;
+					
+					currbie.flushBIE();
+					
+					// If there are more blocks
+					if (currblockindex < blocks.size()) {
+						currblock = blocks.get(currblockindex);
+					} else {
+						this.currblock = null;
+					}
 				}
 			}
 		}
-		
 		UpdateViews();
 	}
 	
@@ -1000,6 +1251,7 @@ public class EBingoModel {
 		private TreasureIslandGenerator tig = null;
 		private Result r;
 		private RegularResult rr;
+		private TropicalTreasuresResult ttr;
 		private int[] balls;
 		private long cardID = 0;
 		private long numcards = 0;
@@ -1010,6 +1262,8 @@ public class EBingoModel {
 		private List<Integer> array46_60 = new ArrayList<Integer>(15);
 		private List<Integer> array61_75 = new ArrayList<Integer>(15);
 		private List<Integer> array1_75 = new ArrayList<Integer>(75);
+		
+		private List<Integer> lastpicks = new ArrayList<Integer>();
 		
 		public Simulator(EBingoModel model) {
 			this.model = model;
@@ -1100,6 +1354,64 @@ public class EBingoModel {
 				}
 			}
 			return r;
+		}
+		
+		/**
+		 * The method called only in Tropical Treasures Bingo mode
+		 * @return  the TropicalTreausresResult object of this play
+		 */
+		private TropicalTreasuresResult generateTTResults() {
+			if (model.currttblock != null) {
+				ttr = new TropicalTreasuresResult(model.currttblock.getPicks(), model.currttblock.isFixedCard());
+				
+				// If the picks are not fixed per play 
+				// or it is first play generate the picks
+				if (!ttr.isFixed() || model.currttblock.currplay == 0)
+					generateTTPicks(ttr.getNumPicks());
+				else 
+					ttr.setPicks(this.lastpicks);
+				
+				generateTTBalls();
+				
+				generateTTHits();
+				
+				calculateTTPayout();
+			}
+			
+			return ttr;
+		}
+		
+		/**
+		 * This method generates the picks in Tropical Treasures Bingo mode
+		 * @param numpicks
+		 */
+		private void generateTTPicks(int numpicks) {
+			Collections.shuffle(this.array1_75);
+			
+			for (int i = 0; i < numpicks; i++) 
+				this.ttr.addPick(this.array1_75.get(i));
+			
+			this.lastpicks = this.ttr.getPicks();
+		}
+		
+		/**
+		 * This method generates the 21 called balls in Tropical Treasures Bingo mode
+		 */
+		private void generateTTBalls() {
+			Collections.shuffle(this.array1_75);
+			
+			for (int i = 0; i < 21; i++) 
+				this.ttr.addBall(this.array1_75.get(i));
+		}
+		
+		/**
+		 * This method generates the hits according to the 21 called balls and the picks in Tropical Treasures Bingo mode
+		 */
+		private void generateTTHits() {
+			for (int i : this.ttr.picks) {
+				if (this.ttr.balls.contains(i))
+					this.ttr.addHits(i);
+			}
 		}
 		
 		/**
@@ -1343,6 +1655,40 @@ public class EBingoModel {
 		}
 		
 		/**
+		 * The method calculates the payout of each Tropical Treasures Bingo play
+		 */
+		private void calculateTTPayout() {
+			int numhits = ttr.getHits().size();
+			int numpicks = ttr.getNumPicks();
+			double payout = 0;
+			
+			if (ttr.getNumHits() > 0) {
+				for (int i = 0; i < model.ttpaytable.size(); i++) {
+					TTPaytableEntry tpe = model.ttpaytable.get(i);
+					
+					if (tpe.getPick() == numpicks && tpe.getHits() == numhits) {
+						payout = tpe.getPayout();
+						
+						// Check for any bonus wins
+						if (ttr.getLastBall() == ttr.getLastHit()) {
+							payout *= (ttr.numpicks < 10) ? 2 : 5;
+							model.incrementBonusHits(i);
+							ttr.setBonusWin(true);
+						} else {
+							model.incrementHits(i);
+						}
+						
+						break;
+					}
+				}
+				
+				// Set the play payout
+				ttr.setDollarWon(payout);
+			}
+			
+		}
+		
+		/**
 		 * This method calculate the payout of regular bingo 
 		 * 
 		 * @param outcome		The game outcome integer generated by calling generateOutCome();
@@ -1447,7 +1793,7 @@ public class EBingoModel {
 		
 	}
 
-	// PaytableEntry class
+	// PaytableEntry classes
 	public class PaytableEntry {
 		private String winCode;
 		private String name;
@@ -1544,6 +1890,45 @@ public class EBingoModel {
 			}
 			
 			return this.binaryWinPattern;
+		}
+	}
+	
+	public class TTPaytableEntry {
+		private String winCode = "";
+		private int picks = 0;
+		private int hits = 0;
+		private float payout = 0;
+		
+		public void setWinCode(String value) {
+			this.winCode = value;
+		}
+		
+		public void setPicks(int value) {
+			this.picks = value;
+		}
+		
+		public void setHits(int value) {
+			this.hits = value;
+		}
+		
+		public void setPayout(float value) {
+			this.payout = value;
+		}
+		
+		public String getWinCode() {
+			return this.winCode;
+		}
+		
+		public int getPick() {
+			return this.picks;
+		}
+		
+		public int getHits() {
+			return this.hits;
+		}
+		
+		public float getPayout() {
+			return EBingoModel.this.roundTwoDecimals(this.payout);
 		}
 	}
 	
@@ -1748,6 +2133,191 @@ public class EBingoModel {
 		
 	}
 	
+	public class TTBlock {
+		private int numplays = 0;
+		private int currplay = 0;
+		private float wager = 0;
+		private int repeat = 0;
+		private long blocknum = 0;
+		private int picks = 0;
+		boolean fixed = false;
+		
+		private int currrepeat = 1;
+		
+		public void setNumPlays(int value) {
+			this.numplays = value;
+		}
+
+		public void setRepeat(int value) {
+			this.repeat = value;
+		}
+
+		public void setWager(float value) {
+			this.wager = value;
+		}
+		
+		public void setPicks(int value) {
+			this.picks = value;
+		}
+		
+		public void setFixedCard(boolean value) {
+			this.fixed = value;
+		}
+		
+		public void setBlockNum(long value) {
+			this.blocknum = value;
+		}
+		
+		public void incrementCurrRepeat() {
+			this.currrepeat++;
+		}
+		
+		public int getNumPlays() {
+			return this.numplays;
+		}
+		
+		public int getPicks() {
+			return this.picks;
+		}
+		
+		public float getWager() {
+			return EBingoModel.this.roundTwoDecimals(this.wager);
+		}
+
+		public boolean isFixedCard() {
+			return this.fixed;
+		}
+		
+		public long getBlockNum() {
+			return this.blocknum;
+		}
+		
+		public int getCurrPlay() {
+			return this.currplay;
+		}
+		
+		public int getRepeat() {
+			return this.repeat;
+		}
+		
+		public void setBankroll(double value) {
+			// To be implemented in GRBlock
+		}
+		
+		public double getBankroll() {
+			// To be implemented in GRBlock
+			return 0;
+		}
+		
+		public boolean incrementCurrPlay(Result r) {
+			return false;
+			// To be implemented in GRBlock
+		}
+		
+		public boolean incrementCurrPlay() {
+			this.currplay++;
+			return (this.currplay >= this.numplays);
+		}
+		
+		// Reset at the end of each repeat
+		public void reset() {
+			this.currplay = 0;
+			
+		}
+		
+		public void setCurrBalance(double bankroll) {
+			// To be implemented in GRBlock
+		}
+		
+		public double getCurrBalance() {
+			return 0;
+			// To be implemented in GRBlock
+		}
+	}
+	
+	public class TTGRBlock extends TTBlock {
+		private double bankroll = 0;
+		private double currbalance = 0;
+		
+		public TTGRBlock () {
+			super();
+		}
+		
+		public int getCurrSpin() {
+			return super.currplay;
+		}
+		
+		public void addCurrBalance(double value) {
+			this.currbalance += value;
+		}
+		
+		@Override
+		public void setCurrBalance(double value) {
+			this.currbalance = value;
+		}
+		
+		public void placeWager() {
+			currbalance -= super.wager * super.picks;
+		}
+		
+		@Override
+		public void setBankroll(double value) {
+			this.bankroll = value;
+		}
+		
+		@Override
+		public double getBankroll() {
+			return this.bankroll;
+		}
+		
+		@Override
+		public double getCurrBalance() {
+			return EBingoModel.this.roundTwoDecimals(this.currbalance);
+		}
+		
+		public void updateCurrBalance(Result r) {
+			// Update the total wins 
+			EBingoModel.this.currgre.addWins(r.creditswon * r.wager);
+			
+			currbalance += r.creditswon * r.wager;
+			
+			// Update the peak balance
+			if (currbalance > EBingoModel.this.currgre.currpeakbalance)
+				EBingoModel.this.currgre.setCurrPeakBalance(currbalance);
+			
+			// Update the win/loss/ldw info
+			if (r.creditswon > 0) {
+				if ((r.creditswon * r.wager - r.getBet()) < 0 )
+					EBingoModel.this.currgre.incrementLDWs();
+				else 
+					EBingoModel.this.currgre.incrementWins();
+			} else {
+				EBingoModel.this.currgre.incrementLosses();
+			}
+		}
+		
+		@Override
+		public boolean incrementCurrPlay(Result r) {
+			placeWager();
+			
+			if (this.currbalance < 0)
+				return true;
+			else {
+				updateCurrBalance(r);
+				super.currplay++;
+				return false;
+			}
+		}
+		
+		@Override
+		public void reset() {
+			super.currplay = 0;
+			currbalance = (double)this.bankroll;
+		}
+		
+	}
+	
+	
 	// Result class
 	public class Result {
 		private int[] balls = new int[NUM_ON_CARDS];
@@ -1870,6 +2440,145 @@ public class EBingoModel {
 		}
 	}
 
+	public class TropicalTreasuresResult {
+		private long recordNumber = 0;
+		private long blockNumber = 0;
+		private int numplays = 0;
+		private float wager = 0;
+		private int numpicks = 0;
+		private boolean fixed = false;
+		private boolean bonuswin = false;
+		private double dollarwon = 0;
+		
+		private List<Integer> balls = new ArrayList<Integer>(21);
+		private List<Integer> picks;
+		private List<Integer> hits = new ArrayList<Integer>();
+		
+		public TropicalTreasuresResult(int picks, boolean fixed) {
+			this.numpicks = picks;
+			this.fixed = fixed;
+			this.picks = new ArrayList<Integer>(picks);
+		}
+
+		public void setRecordNumber(long value) {
+			this.recordNumber = value;
+		}
+		
+		public void setBlockNumber(long value) {
+			this.blockNumber = value;
+		}
+		
+		public void setNumPlays(int value) {
+			this.numplays = value;
+		}
+		
+		public void setWager(float value) {
+			this.wager = value;
+		}
+		
+		public void setNumPicks(int value) {
+			this.numpicks = value;
+		}
+		
+		public void setFixed(boolean value) {
+			this.fixed = value;
+		}
+		
+		public void setDollarWon(double value) {
+			this.dollarwon = value;
+		}
+		
+		public void setBonusWin(boolean value) {
+			this.bonuswin = value;
+		}
+		
+		public void addBall(int value) {
+			this.balls.add(value);
+		}
+		
+		public void addPick(int value) {
+			this.picks.add(value);
+		}
+		
+		public void setPicks(List<Integer> values) {
+			this.picks = values;
+		}
+		
+		public void addHits(int value) {
+			this.hits.add(value);
+		}
+		
+		public long getRecordNumber() {
+			return this.recordNumber;
+		}
+		
+		public long getBlockNumber() {
+			return this.blockNumber;
+		}
+		
+		public int getNumPlay() {
+			return this.numplays;
+		}
+		
+		public float getWager() {
+			return EBingoModel.this.roundTwoDecimals(this.wager);
+		}
+		
+		public int getNumPicks() {
+			return this.numpicks;
+		}
+		
+		public boolean isFixed() {
+			return this.fixed;
+		}
+		
+		public double getDollarWon() {
+			return EBingoModel.this.roundTwoDecimals(this.dollarwon);
+		}
+
+		public boolean getBonusWin() {
+			return this.bonuswin;
+		}
+		
+		public List<Integer> getBalls() {
+			return this.balls;
+		}
+		
+		public int getBall(int index) {
+			return this.balls.get(index);
+		}
+		
+		public int getLastBall() {
+			return getBall(balls.size() - 1);
+		}
+		
+		public List<Integer> getPicks() {
+			return this.picks;
+		}
+		
+		public int getPick(int index) {
+			return this.picks.get(index);
+		}
+		
+		public List<Integer> getHits() {
+			return this.hits;
+		}
+		
+		public int getHit(int index) {
+			return this.hits.get(index);
+		}
+		
+		public int getNumHits() {
+			return this.hits.size();
+		}
+		
+		public int getLastHit() {
+			return getHit(hits.size() - 1);
+		}
+
+		
+	}
+	
 	public class RegularResult {
 		private long recordNumber = 0;
 		private long blockNumber = 0;
@@ -2270,6 +2979,36 @@ public class EBingoModel {
 				EBingoModel.this.currbie = new BasicInfoEntry();
 			}
 		}
+	}
+	
+	public class TTBasicInfoEntry {
+		private long blockID = 0;
+		private int numplays = 0;
+		
+		private long wins = 0;
+		private long losses = 0;
+		private long ldws = 0;
+		private long pushes = 0;
+		
+		List<Integer> basehits = new ArrayList<Integer>(11);
+		List<Integer> bonushits = new ArrayList<Integer>(11);
+		
+		public TTBasicInfoEntry() {
+			if (EBingoModel.this.currblockindex < EBingoModel.this.ttblocks.size()) {
+				this.blockID = EBingoModel.this.ttblocks.get(currblockindex).getBlockNum();
+				this.numplays = EBingoModel.this.ttblocks.get(currblockindex).getNumPlays();
+			}
+		}
+		
+		public long getWins() {
+			return this.wins;
+		}
+		
+		public long getLosses() {
+			return this.losses;
+		}
+		
+		
 	}
 	
 	public class PercentLosersEntry {
@@ -2994,5 +3733,9 @@ public class EBingoModel {
 
 	public final double roundTwoDecimals(double d) {
 		return Double.valueOf(twoDForm.format(d));
+	}
+	
+	public final float roundTwoDecimals(float f) {
+		return Float.valueOf(twoDForm.format(f));
 	}
 }

@@ -23,11 +23,11 @@ public class EBingoMain{
 		
 		JFrame f = new JFrame();
 		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		f.setSize(800, 600);
+		f.setSize(800, 800);
 		f.setLocation((int)(dim.width * 0.5 - f.getSize().width * 0.5),
 				(int)(dim.height * 0.5 - f.getSize().height * 0.5));
 		f.setVisible(true);
-		f.setTitle("LuckyClover Results Generator");
+		f.setTitle("EBingo Results Generator");
 		f.getContentPane().setBackground(Color.WHITE);
 		f.getContentPane().setLayout(new BorderLayout());
 		

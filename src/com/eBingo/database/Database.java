@@ -22,11 +22,13 @@ import com.eBingo.EBingoModel.Player;
 import com.eBingo.EBingoModel.Range;
 import com.eBingo.EBingoModel.RegularResult;
 import com.eBingo.EBingoModel.Result;
+import com.eBingo.EBingoModel.TTBlock;
+import com.eBingo.EBingoModel.TTPaytableEntry;
+import com.eBingo.EBingoModel.TropicalTreasuresResult;
 
 public class Database {
 
 	public static String DEFAULT_DB_NAME = "EBingoResDB";
-	private static Mode mode;
 	
 	private static String dbName = DEFAULT_DB_NAME;
 	private static String URL = "jdbc:derby:" + dbName + ";create=true";
@@ -40,7 +42,6 @@ public class Database {
 	
 	
 	public static void setMode(Mode m) {
-		mode = m;
 	}
 	
 	public static void setDBName(String name) {
@@ -176,6 +177,61 @@ public class Database {
 	}
 	
 	/**
+	 * Inserts the Tropical Treasures Bingo paytable entries read from the config file
+	 * 
+	 * @param tableName: name of the paytable DB table
+	 * @param pe: the paytable entry to be inserted
+	 * @param hit: the hit count for non-bonus wins
+	 * @param bonushit: the hit count for bonus wins
+	 * @throws SQLException
+	 */
+	public static void insertIntoTable(String tableName, TTPaytableEntry tpe, int hit, int bonushit)
+			throws SQLException {
+				tableName = tableName.toUpperCase();
+				
+				// Create table if does not exist
+				if(!Database.doesTableExist(tableName)) {
+					String query = "create table " + tableName 
+							+ " (ID varchar(10) NOT NULL, "
+							+ "PICKS integer NOT NULL, "
+							+ "HITS integer NOT NULL, "
+							+ "PAYOUT float NOT NULL, "
+							+ "REGULAR_HITS integer NOT NULL, "
+							+ "BONUS_HITS integer NOT NULL)";
+					
+					Database.createTable(tableName, query);
+				}
+				
+				// Add entry to the table if table already exists
+				String query = "insert into " + tableName
+						+ " (ID, PICKS, HITS, PAYOUT, REGULAR_HITS, BONUS_HITS) "
+						+ "values(?, ?, ?, ?, ?, ?)";
+				
+				try {
+					if (st == null)
+						st = conn.prepareStatement(query);
+					
+					st.setString(1, tpe.getWinCode());
+					st.setInt(2, tpe.getPick());
+					st.setInt(3, tpe.getHits());
+					st.setFloat(4, tpe.getPayout());
+					st.setInt(5, hit);
+					st.setInt(6, bonushit);
+					
+					st.addBatch();
+					batchRequests++;
+					
+					if (batchRequests >= MAX_BATCH_LIMIT) {
+						batchRequests = 0;
+						st.executeBatch();
+					}
+					
+				} catch (SQLException e) {
+					throw e;
+				}
+		}
+	
+	/**
 	 * Inserts the blocks information read from the block file
 	 * 
 	 * @param tableName: name of the blocks DB table
@@ -223,6 +279,62 @@ public class Database {
 		}
 	}
 	
+	/**
+	 * Inserts the blocks information read from the block file
+	 * 
+	 * @param tableName: name of the blocks DB table
+	 * @param b: the block to be inserted
+	 * @throws SQLException
+	 */
+	public static void insertIntoTable(String tableName, TTBlock b) throws SQLException{
+		tableName = tableName.toUpperCase();
+		
+		// Create the table if does not exist yet
+		if (!Database.doesTableExist(tableName)) {
+			String query = "create table " + tableName 
+					+ " (BLOCKNUMBER bigint NOT NULL, "
+					+ "NUMOFPLAYS integer NOT NULL, "
+					+ "FIXEDCARD boolean NOT NULL, "
+					+ "PICKS integer NOT NULL, "
+					+ "WAGER float NOT NULL)";
+			
+			Database.createTable(tableName, query);
+		}
+		
+		// Insert the block if table already exists
+		String query = "insert into " + tableName
+				+ " (BLOCKNUMBER, NUMOFPLAYS, FIXEDCARD, PICKS, WAGER) "
+				+ "values(?, ?, ?, ?, ?)";
+		
+		try {
+			if (st == null) 
+				st = conn.prepareStatement(query);
+			
+			st.setLong(1, b.getBlockNum());
+			st.setInt(2, b.getNumPlays());
+			st.setBoolean(3, b.isFixedCard());
+			st.setInt(4, b.getPicks());
+			st.setFloat(5, b.getWager());
+			
+			st.addBatch();
+			batchRequests++;
+			
+			if (batchRequests >= MAX_BATCH_LIMIT) {
+				batchRequests = 0;
+				st.executeBatch();
+			}
+		
+		} catch (SQLException e) {
+			throw e;
+		}
+	}
+	
+	/**
+	 * Inserts the result into the table
+	 * @param tableName	The name of the database table
+	 * @param r	 The Result object
+	 * @throws SQLException
+	 */
 	public static void insertIntoTable(String tableName, Result r) throws SQLException {
 		tableName = tableName.toUpperCase();
 		
@@ -340,6 +452,71 @@ public class Database {
 		}
 	}
 	
+	/**
+	 * Inserts the result into the table
+	 * @param tableName	The name of the database table
+	 * @param r	 The TropicalTreasuresResult object
+	 * @throws SQLException
+	 */
+	public static void insertIntoTable(String tableName, TropicalTreasuresResult ttr) 
+			throws SQLException {
+		tableName = tableName.toUpperCase();
+		
+		// Create the table if does not exist yet
+		if (!Database.doesTableExist(tableName)) {
+			
+			String query = "create table " + tableName 
+					+ " (PLAYID bigint NOT NULL, "
+					+ "BLOCKID bigint NOT NULL, "
+					+ "NUMOFPLAYS integer NOT NULL, "
+					+ "WAGER float NOT NULL, "
+					+ "PICKS varchar(50) NOT NULL, "
+					+ "BALLS varchar(100) NOT NULL, "
+					+ "HITS varchar(50) NOT NULL, "
+					+ "BONUSWIN boolean NOT NULL, "
+					+ "WINAMOUNT double NOT NULL)";
+			
+			Database.createTable(tableName, query);
+		}
+		
+		// Insert the result if table already exists
+		String query = "insert into " + tableName
+				+ " (PLAYID, BLOCKID, NUMOFPLAYS, WAGER, PICKS, BALLS, HITS, BONUSWIN, WINAMOUNT) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		
+		try {
+			if (st == null) 
+				st = conn.prepareStatement(query);
+			
+			st.setLong(1, ttr.getRecordNumber());
+			st.setLong(2, ttr.getBlockNumber());
+			st.setInt(3, ttr.getNumPlay());
+			st.setFloat(4, ttr.getWager());
+			st.setString(5, ttr.getPicks().toString());
+			st.setString(6, ttr.getBalls().toString());
+			st.setString(7, ttr.getHits().toString());
+			st.setBoolean(8, ttr.getBonusWin());
+			st.setDouble(9, ttr.getDollarWon());
+			
+			st.addBatch();
+			batchRequests++;
+			
+			if (batchRequests >= MAX_BATCH_LIMIT) {
+				batchRequests = 0;
+				st.executeBatch();
+			}
+		
+		} catch (SQLException e) {
+			throw e;
+		}
+	}
+	
+	/**
+	 * Inserts the Regular Bingo result into the table
+	 * @param tableName	The name of the database table
+	 * @param r	 The RegularResult object
+	 * @throws SQLException
+	 */
 	public static void insertIntoTable(String tableName, RegularResult rr) throws SQLException {
 		tableName = tableName.toUpperCase();
 		

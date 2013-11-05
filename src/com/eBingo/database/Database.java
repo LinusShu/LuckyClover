@@ -22,6 +22,7 @@ import com.eBingo.EBingoModel.Player;
 import com.eBingo.EBingoModel.Range;
 import com.eBingo.EBingoModel.RegularResult;
 import com.eBingo.EBingoModel.Result;
+import com.eBingo.EBingoModel.TTBasicInfoEntry;
 import com.eBingo.EBingoModel.TTBlock;
 import com.eBingo.EBingoModel.TTPaytableEntry;
 import com.eBingo.EBingoModel.TropicalTreasuresResult;
@@ -195,7 +196,7 @@ public class Database {
 							+ " (ID varchar(10) NOT NULL, "
 							+ "PICKS integer NOT NULL, "
 							+ "HITS integer NOT NULL, "
-							+ "PAYOUT float NOT NULL, "
+							+ "PAYOUT double NOT NULL, "
 							+ "REGULAR_HITS integer NOT NULL, "
 							+ "BONUS_HITS integer NOT NULL)";
 					
@@ -214,7 +215,7 @@ public class Database {
 					st.setString(1, tpe.getWinCode());
 					st.setInt(2, tpe.getPick());
 					st.setInt(3, tpe.getHits());
-					st.setFloat(4, tpe.getPayout());
+					st.setDouble(4, tpe.getPayout());
 					st.setInt(5, hit);
 					st.setInt(6, bonushit);
 					
@@ -296,7 +297,7 @@ public class Database {
 					+ "NUMOFPLAYS integer NOT NULL, "
 					+ "FIXEDCARD boolean NOT NULL, "
 					+ "PICKS integer NOT NULL, "
-					+ "WAGER float NOT NULL)";
+					+ "WAGER double NOT NULL)";
 			
 			Database.createTable(tableName, query);
 		}
@@ -314,7 +315,7 @@ public class Database {
 			st.setInt(2, b.getNumPlays());
 			st.setBoolean(3, b.isFixedCard());
 			st.setInt(4, b.getPicks());
-			st.setFloat(5, b.getWager());
+			st.setDouble(5, b.getWager());
 			
 			st.addBatch();
 			batchRequests++;
@@ -469,7 +470,7 @@ public class Database {
 					+ " (PLAYID bigint NOT NULL, "
 					+ "BLOCKID bigint NOT NULL, "
 					+ "NUMOFPLAYS integer NOT NULL, "
-					+ "WAGER float NOT NULL, "
+					+ "WAGER double NOT NULL, "
 					+ "PICKS varchar(50) NOT NULL, "
 					+ "BALLS varchar(100) NOT NULL, "
 					+ "HITS varchar(50) NOT NULL, "
@@ -491,7 +492,7 @@ public class Database {
 			st.setLong(1, ttr.getRecordNumber());
 			st.setLong(2, ttr.getBlockNumber());
 			st.setInt(3, ttr.getNumPlay());
-			st.setFloat(4, ttr.getWager());
+			st.setDouble(4, ttr.getWager());
 			st.setString(5, ttr.getPicks().toString());
 			st.setString(6, ttr.getBalls().toString());
 			st.setString(7, ttr.getHits().toString());
@@ -637,6 +638,90 @@ public class Database {
 			st.setLong(8, bie.getMultiWins());
 			st.setLong(9, bie.getRedSquares());
 			st.setLong(10, bie.getFlashingRedSquares());
+			
+			st.addBatch();
+			batchRequests++;
+			
+			if (batchRequests >= blocksize) {
+				batchRequests = 0;
+				st.executeBatch();
+			}
+			
+		} catch (SQLException e) {
+			throw e;
+		}
+		
+	}
+	
+	public static void insertIntoTable(String tableName, TTBasicInfoEntry ttbie, int blocksize) 
+			throws SQLException {
+		tableName = tableName.toUpperCase();
+		
+		String basehits = "";
+		String basehitsI = "";
+		String basehitsQ = "";
+		
+		String bonushits = "";
+		String bonushitsI = "";
+		String bonushitsQ = "";
+		
+		for (int i = 0; i < ttbie.getHitsSize(); i++) {
+			basehits += ", BASEHIT_" + i + " bigint NOT NULL";
+			bonushits += ", BONUSHIT_" + i + " bigint NOT NULL";
+			
+			basehitsI += ", BASEHIT_" + i;
+			bonushitsI += ", BONUSHIT_" + i;
+			
+			basehitsQ += ", ?";
+			bonushitsQ += ", ?";
+		}
+		
+		if (!Database.doesTableExist(tableName)) {
+			String query = "create table " + tableName 
+					+ " (ID bigint NOT NULL, "
+					+ "PLAYS integer NOT NULL, "
+					+ "PICKS integer NOT NULL, "
+					+ "FIXED boolean NOT NULL, "
+					+ "WINS bigint NOT NULL, "
+					+ "LOSSES bigint NOT NULL, " 
+					+ "LDWS bigint NOT NULL, "
+					+ "PUSHES bigint NOT NULL, " 
+					+ "BASEPAY double NOT NULL, "
+					+ "BONUSPAY double NOT NULL"
+					+ basehits + bonushits + ")";
+
+			Database.createTable(tableName, query);
+		}
+		
+		// Add entry to the table if table already exists
+		String query = "insert into " + tableName
+				+ " (ID, PLAYS, PICKS, FIXED, WINS, LOSSES, LDWS, PUSHES, BASEPAY, BONUSPAY" + basehitsI + bonushitsI + ") "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?" + basehitsQ + bonushitsQ + ")";
+		
+		try {
+			if (st == null)
+				st = conn.prepareStatement(query);
+			
+			st.setLong(1, ttbie.getBlockID());
+			st.setInt(2, ttbie.getNumPlays());
+			st.setInt(3, ttbie.getPicks());
+			st.setBoolean(4, ttbie.isFixed());
+			st.setLong(5, ttbie.getWins());
+			st.setLong(6, ttbie.getLosses());
+			st.setLong(7, ttbie.getLDWs());
+			st.setLong(8, ttbie.getPushes());
+			st.setDouble(9, ttbie.getBasePay());
+			st.setDouble(10, ttbie.getBonusPay());
+			
+			int index = 10;
+			
+			for (int i = 0; i < ttbie.getHitsSize(); i++) {
+				st.setLong(++index, ttbie.getBaseHit(i));
+			}
+			
+			for (int i = 0; i < ttbie.getHitsSize(); i++) {
+				st.setLong(++index, ttbie.getBonusHit(i));
+			}
 			
 			st.addBatch();
 			batchRequests++;

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+	<blocks>
+		<!-- Block Information for LuckyClover mode
+			 numplays: [integer > 0]
+			 fixedcard: [true || false]
+			 picks: [integer >= 3 && <= 10]
+			 wager: [float = 0.05 || 0.10]
+			 repeat: [integer > 0 && < 10000]
+		 -->
+		 
+		 <block numplays="1000000" fixedcard="false" picks="10" wager="0.05" repeat="1"/>  
+		 <block numplays="1000000" fixedcard="false" picks="9" wager="0.05" repeat="1"/> 
+		 <block numplays="1000000" fixedcard="false" picks="8" wager="0.05" repeat="1"/>
+		 <block numplays="1000000" fixedcard="false" picks="7" wager="0.05" repeat="1"/>
+		 <block numplays="1000000" fixedcard="false" picks="6" wager="0.05" repeat="1"/>
+		 <block numplays="1000000" fixedcard="false" picks="5" wager="0.05" repeat="1"/>
+		 <block numplays="1000000" fixedcard="false" picks="4" wager="0.05" repeat="1"/>
+		 <block numplays="1000000" fixedcard="false" picks="3" wager="0.05" repeat="1"/> 
+	</blocks>
+	
+	<grblocks>
+		<!-- Gambler's Ruin block information for Tropical Treasures Bingo
+			picks: [integer >= 3 && <= 10]
+			fixedcard: [true || false]
+			wager: [float = 0.05 || 0.10]
+			bankroll: [double > 0]
+			repeat: [integer > 0 && < 10000]
+		-->
+		
+		<grblock picks="4" fixedcard="false" wager="0.05" bankroll="100" repeat="10000"/>
+		<grblock picks="4" fixedcard="true" wager="0.10" bankroll="100" repeat="10000"/>
+	</grblocks>
+	
+</data>

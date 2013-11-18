@@ -15,6 +15,9 @@ import com.eBingo.EBingoModel.BasicInfoEntry;
 import com.eBingo.EBingoModel.Block;
 import com.eBingo.EBingoModel.Card;
 import com.eBingo.EBingoModel.GamblersRuinEntry;
+import com.eBingo.EBingoModel.HSBasicInfoEntry;
+import com.eBingo.EBingoModel.HSPaytableEntry;
+import com.eBingo.EBingoModel.HighSticksResult;
 import com.eBingo.EBingoModel.Mode;
 import com.eBingo.EBingoModel.PaytableEntry;
 import com.eBingo.EBingoModel.PercentLosersEntry;
@@ -40,9 +43,10 @@ public class Database {
 	private static List<String> listOfTables;
 	private static int batchRequests = 0;
 	private static PreparedStatement st = null;
-	
+	private static Mode mode;
 	
 	public static void setMode(Mode m) {
+		mode = m;
 	}
 	
 	public static void setDBName(String name) {
@@ -181,7 +185,7 @@ public class Database {
 	 * Inserts the Tropical Treasures Bingo paytable entries read from the config file
 	 * 
 	 * @param tableName: name of the paytable DB table
-	 * @param pe: the paytable entry to be inserted
+	 * @param tpe: the paytable entry to be inserted
 	 * @param hit: the hit count for non-bonus wins
 	 * @param bonushit: the hit count for bonus wins
 	 * @throws SQLException
@@ -233,6 +237,55 @@ public class Database {
 		}
 	
 	/**
+	 * Inserts the High Sticks paytable entries read from the config file
+	 * 
+	 * @param tableName: name of the paytable DB table
+	 * @param hspe: the paytable entry to be inserted
+	 * @throws SQLException
+	 */
+	public static void insertIntoTable(String tableName, HSPaytableEntry hspe, int hit)
+			throws SQLException {
+				tableName = tableName.toUpperCase();
+				
+				// Create table if does not exist
+				if(!Database.doesTableExist(tableName)) {
+					String query = "create table " + tableName 
+							+ " (ID varchar(10) NOT NULL, "
+							+ "BALLS_CALLED integer NOT NULL, "
+							+ "PAYOUT double NOT NULL, "
+							+ "HITS integer NOT NULL)";
+					
+					Database.createTable(tableName, query);
+				}
+				
+				// Add entry to the table if table already exists
+				String query = "insert into " + tableName
+						+ " (ID, BALLS_CALLED, PAYOUT, HITS) "
+						+ "values(?, ?, ?, ?)";
+				
+				try {
+					if (st == null)
+						st = conn.prepareStatement(query);
+					
+					st.setString(1, hspe.getWinCode());
+					st.setInt(2, hspe.getBallsCalled());
+					st.setDouble(3, hspe.getPayout());
+					st.setInt(4, hit);
+					
+					st.addBatch();
+					batchRequests++;
+					
+					if (batchRequests >= MAX_BATCH_LIMIT) {
+						batchRequests = 0;
+						st.executeBatch();
+					}
+					
+				} catch (SQLException e) {
+					throw e;
+				}
+		}
+	
+	/**
 	 * Inserts the blocks information read from the block file
 	 * 
 	 * @param tableName: name of the blocks DB table
@@ -247,16 +300,26 @@ public class Database {
 			String query = "create table " + tableName 
 					+ " (BLOCKNUMBER bigint NOT NULL, "
 					+ "NUMOFPLAYS integer NOT NULL, "
-					+ "NUMOFCARDS integer NOT NULL, "
-					+ "WAGER double NOT NULL)";
+					+ "NUMOFCARDS integer NOT NULL, ";
+			
+			if (mode == Mode.HIGH_STICKS)
+				query += "FIXED boolean NOT NULL, " 
+						+ "WAGER double NOT NULL)";
+			else 
+				query += "WAGER double NOT NULL)";
 			
 			Database.createTable(tableName, query);
 		}
 		
 		// Insert the block if table already exists
 		String query = "insert into " + tableName
-				+ " (BLOCKNUMBER, NUMOFPLAYS, NUMOFCARDS, WAGER) "
-				+ "values(?, ?, ?, ?)";
+				+ " (BLOCKNUMBER, NUMOFPLAYS, NUMOFCARDS, ";
+		
+		if (mode == Mode.HIGH_STICKS) 
+			query += "FIXED, WAGER) values(?, ?, ?, ?, ?) ";
+		else 
+			query += "WAGER) values(?, ?, ?, ?) ";
+		
 		
 		try {
 			if (st == null) 
@@ -265,7 +328,12 @@ public class Database {
 			st.setLong(1, b.getBlockNum());
 			st.setInt(2, b.getNumPlays());
 			st.setInt(3, b.getNumCards());
-			st.setDouble(4, b.getWager());
+			if (mode == Mode.HIGH_STICKS) {
+				st.setBoolean(4, b.isFixed());
+				st.setDouble(5, b.getWager());
+			} else {
+				st.setDouble(4, b.getWager());
+			}
 			
 			st.addBatch();
 			batchRequests++;
@@ -387,7 +455,7 @@ public class Database {
 					+ " (PLAYID bigint NOT NULL, "
 					+ "BLOCKID bigint NOT NULL, "
 					+ "NUMOFCARDS integer NOT NULL, "
-					+ "WAGER float NOT NULL, "
+					+ "WAGER double NOT NULL, "
 					+ "TOTALWIN double NOT NULL"
 					+ balls + cards + ")";
 			
@@ -406,7 +474,7 @@ public class Database {
 			st.setLong(1, r.getRecordNumber());
 			st.setLong(2, r.getBlockNumber());
 			st.setInt(3, r.getNumCards());
-			st.setFloat(4, r.getWager());
+			st.setDouble(4, r.getWager());
 			st.setDouble(5, r.getDollarsWon());
 			
 			int index = 6;
@@ -454,9 +522,9 @@ public class Database {
 	}
 	
 	/**
-	 * Inserts the result into the table
+	 * Inserts the Tropical Treasures Bingo result into the table
 	 * @param tableName	The name of the database table
-	 * @param r	 The TropicalTreasuresResult object
+	 * @param ttr	 The TropicalTreasuresResult object
 	 * @throws SQLException
 	 */
 	public static void insertIntoTable(String tableName, TropicalTreasuresResult ttr) 
@@ -513,12 +581,99 @@ public class Database {
 	}
 	
 	/**
+	 * Inserts the High Sticks bingo result into the table
+	 * @param tableName	The name of the database table
+	 * @param r	 The RegularResult object
+	 * @throws SQLException
+	 */
+	public static void insertIntoTable(String tableName, HighSticksResult hsr) 
+			throws SQLException {
+		tableName = tableName.toUpperCase();
+		
+		String cards = "";
+		String cardsQ = "";
+		String cardsI = "";
+		
+		// Create the table if does not exist yet
+		if (!Database.doesTableExist(tableName)) {
+
+			// Prepare cards query string
+			for (int i = 0; i < hsr.getCards().size(); i++) {
+				cards += ", CARD" + i + "_ID" + " bigint NOT NULL" + ", CARD" + i
+						+ "_DOLLARWON" + " double NOT NULL" + ", CARD" + i
+						+ "_NUMS" + " varchar(100) NOT NULL" + ", CARD" + i
+						+ "_CCOLOUR" + " varchar(10) NOT NULL";
+
+				cardsI += ", CARD" + i + "_ID" + ", CARD" + i 
+						+ "_DOLLARWON, CARD" + i 
+						+ "_NUMS, CARD" + i
+						+ "_CCOLOUR";
+
+				cardsQ += ", ?, ?, ?, ?";
+
+			}
+
+			String query = "create table " + tableName
+					+ " (PLAYID bigint NOT NULL, "
+					+ "BLOCKID bigint NOT NULL, "
+					+ "NUMOFCARDS integer NOT NULL, "
+					+ "WAGER double NOT NULL, " 
+					+ "TOTALWIN double NOT NULL, "
+					+ "BALLS varchar(100) NOT NULL"
+					+ cards + ")";
+
+			Database.createTable(tableName, query);
+		}
+
+		// Insert the result if table already exists
+		String query = "insert into " + tableName
+				+ " (PLAYID, BLOCKID, NUMOFCARDS, WAGER, TOTALWIN, BALLS" + cardsI + ") " 
+				+ "values(?, ?, ?, ?, ?, ?" + cardsQ + ")";
+
+		try {
+			if (st == null)
+				st = conn.prepareStatement(query);
+
+			st.setLong(1, hsr.getRecordNumber());
+			st.setLong(2, hsr.getBlockNumber());
+			st.setInt(3, hsr.getNumcards());
+			st.setDouble(4, hsr.getWager());
+			st.setDouble(5, hsr.getDollarWon());
+			st.setString(6, hsr.getBalls().toString());
+			
+			int index = 6;
+
+			for (int i = 0; i < hsr.getCards().size(); i++) {
+				Card c = hsr.getCard(i);
+
+				st.setLong(++index, c.getID());
+				st.setDouble(++index, c.getDollarsWon());
+				st.setString(++index, c.getNumbersOnCard().toString());
+				st.setString(++index, c.getCornerColour().toString());
+			}
+
+			st.addBatch();
+			batchRequests++;
+
+			if (batchRequests >= MAX_BATCH_LIMIT) {
+				batchRequests = 0;
+				st.executeBatch();
+			}
+
+		} catch (SQLException e) {
+			throw e;
+		}
+		
+	}
+	
+	/**
 	 * Inserts the Regular Bingo result into the table
 	 * @param tableName	The name of the database table
 	 * @param r	 The RegularResult object
 	 * @throws SQLException
 	 */
-	public static void insertIntoTable(String tableName, RegularResult rr) throws SQLException {
+	public static void insertIntoTable(String tableName, RegularResult rr) 
+			throws SQLException {
 		tableName = tableName.toUpperCase();
 		
 		String players = "";
@@ -547,7 +702,7 @@ public class Database {
 					+ "BLOCKID bigint NOT NULL, "
 					+ "NUMOFCARDS integer NOT NULL, "
 					+ "NUMOFPLAYERS integer NOT NULL, "
-					+ "WAGER float NOT NULL, "
+					+ "WAGER double NOT NULL, "
 					+ "BALLS varchar(300) NOT NULL, "
 					+ "PLAYERWON varchar(50) NOT NULL, "
 					+ "WINAMOUNT varchar(100) NOT NULL"
@@ -569,7 +724,7 @@ public class Database {
 			st.setLong(2, rr.getBlockNum());
 			st.setInt(3, rr.getNumCards());
 			st.setInt(4, rr.getNumPlayers());
-			st.setFloat(5, rr.getWager());
+			st.setDouble(5, rr.getWager());
 			st.setString(6, Arrays.toString(rr.getBalls()));
 			st.setString(7, rr.getPlayersWon().toString());
 			st.setString(8, rr.getPlayerWinAmount().toString());
@@ -722,6 +877,68 @@ public class Database {
 			for (int i = 0; i < ttbie.getHitsSize(); i++) {
 				st.setLong(++index, ttbie.getBonusHit(i));
 			}
+			
+			st.addBatch();
+			batchRequests++;
+			
+			if (batchRequests >= blocksize) {
+				batchRequests = 0;
+				st.executeBatch();
+			}
+			
+		} catch (SQLException e) {
+			throw e;
+		}
+		
+	}
+	
+	public static void insertIntoTable(String tableName, HSBasicInfoEntry hsbie, int blocksize) 
+			throws SQLException {
+		tableName = tableName.toUpperCase();
+		
+		if (!Database.doesTableExist(tableName)) {
+			String query = "create table " + tableName 
+					+ " (ID bigint NOT NULL, "
+					+ "PLAYS integer NOT NULL, "
+					+ "CARDS integer NOT NULL, "
+					+ "WINS bigint NOT NULL, "
+					+ "LOSSES bigint NOT NULL, " 
+					+ "LDWS bigint NOT NULL, "
+					+ "PUSHES bigint NOT NULL, " 
+					+ "BASEPAY double NOT NULL, "
+					+ "BONUSPAY double NOT NULL, "
+				    + "CNONE bigint NOT NULL, "
+					+ "GREEN bigint NOT NULL, "
+				    + "YELLOW bigint NOT NULL, "
+					+ "RED bigint NOT NULL, "
+				    + "RAINBOW bigint NOT NULL)";
+
+			Database.createTable(tableName, query);
+		}
+		
+		// Add entry to the table if table already exists
+		String query = "insert into " + tableName
+				+ " (ID, PLAYS, CARDS, WINS, LOSSES, LDWS, PUSHES, BASEPAY, BONUSPAY, CNONE, GREEN, YELLOW, RED, RAINBOW) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		
+		try {
+			if (st == null)
+				st = conn.prepareStatement(query);
+			
+			st.setLong(1, hsbie.getBlockID());
+			st.setInt(2, hsbie.getNumplays());
+			st.setInt(3, hsbie.getNumcards());
+			st.setLong(4, hsbie.getWins());
+			st.setLong(5, hsbie.getLosses());
+			st.setLong(6, hsbie.getLDWs());
+			st.setLong(7, hsbie.getPushes());
+			st.setDouble(8, hsbie.getBasePay());
+			st.setDouble(9, hsbie.getBonuspay());
+			st.setLong(10, hsbie.getCornerColour(0));
+			st.setLong(11, hsbie.getCornerColour(1));
+			st.setLong(12, hsbie.getCornerColour(2));
+			st.setLong(13, hsbie.getCornerColour(3));
+			st.setLong(14, hsbie.getCornerColour(4));
 			
 			st.addBatch();
 			batchRequests++;
@@ -895,7 +1112,7 @@ public class Database {
 						+ ", AVG_PB integer NOT NULL"
 						+ ", MEDIAN_PB integer NOT NULL" 
 						+ ", SD_PB integer NOT NULL" 
-						+ ", PAYBACK float NOT NULL)";
+						+ ", PAYBACK double NOT NULL)";
 				
 				Database.createTable(tableName, query);
 			}
@@ -934,7 +1151,7 @@ public class Database {
 			st.setInt(++index, (int)gre.getAvgPB());
 			st.setInt(++index, (int)gre.getMedianPB());
 			st.setInt(++index, (int)gre.getPBSD());
-			st.setFloat(++index, gre.getPayBackPercentage());
+			st.setDouble(++index, gre.getPayBackPercentage());
 			
 			st.addBatch();
 			batchRequests++;

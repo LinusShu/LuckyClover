@@ -30,7 +30,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 	private final String DEFAULT_CONFIG = "choose Lucky Clover config file";
 	private final String DEFAULT_BLOCK = "choose Lucky Clover block file";
 	// Change path to the config/block files here
-	private final String CONFIG_PATH = "D:/Linus_Documents/Git Projects/LuckyClover/config";
+	private final String CONFIG_PATH = "D:/Linus_Documents/Git Projects/EBingo/config";
 	
 	private JFileChooser fc = new JFileChooser();
 	private JLabel configFileLabel = new JLabel("Lucky Clover Configuration");
@@ -49,8 +49,10 @@ public class EBingoView extends JPanel implements ViewInterface{
 	private JRadioButton lcmodeButton = new JRadioButton("Lucky Clover");
 	private JRadioButton ogmodeButton = new JRadioButton("Old Glory");
 	private JRadioButton timodeButton = new JRadioButton("Treasure Island");
-	private JRadioButton ttmodeButton = new JRadioButton("Tropical Treasures");
+	private JRadioButton ttmodeButton = new JRadioButton("Tropical Treasures Bingo");
+	private JRadioButton hsmodeButton = new JRadioButton("High Sticks Bingo");
 	private JRadioButton regularmodeButton = new JRadioButton("Regular");
+	//TODO Add more mode buttons here
 	private ButtonGroup modeGroup = new ButtonGroup();
 	
 	private JLabel optionLabel = new JLabel("Options:");
@@ -88,7 +90,9 @@ public class EBingoView extends JPanel implements ViewInterface{
 		modeGroup.add(ogmodeButton);
 		modeGroup.add(timodeButton);
 		modeGroup.add(ttmodeButton);
+		modeGroup.add(hsmodeButton);
 		modeGroup.add(regularmodeButton);
+		// TODO Group up radio buttons here
 		
 		this.layout = new GridBagLayout();
 		this.gbc = new GridBagConstraints();
@@ -144,7 +148,9 @@ public class EBingoView extends JPanel implements ViewInterface{
 		modePanel.add(ogmodeButton);
 		modePanel.add(timodeButton);
 		modePanel.add(ttmodeButton);
+		modePanel.add(hsmodeButton);
 		modePanel.add(regularmodeButton);
+		// TODO Add radio buttons to panel here
 		
 		this.gbc.gridx = 0;
 		this.gbc.gridy = 4;
@@ -157,6 +163,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 		optionPanel.add(optionLabel);
 		optionPanel.add(genplayresultsCheckBox);
 		optionPanel.add(genGamblersRuinCheckBox);
+		// TODO Add check box to panel here
 		
 		this.gbc.gridx = 1;
 		this.gbc.gridy = 4;
@@ -272,12 +279,21 @@ public class EBingoView extends JPanel implements ViewInterface{
 			}
 		});
 		
+		this.hsmodeButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				EBingoView.this.model.setMode(Mode.HIGH_STICKS);
+			}
+		});
+		
 		this.regularmodeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				EBingoView.this.model.setMode(Mode.REGULAR);
 			}
 		});
+		
+		// TODO add mode radio button listeners here
 		
 		this.genplayresultsCheckBox.addItemListener(new ItemListener() {
 
@@ -304,6 +320,8 @@ public class EBingoView extends JPanel implements ViewInterface{
 				
 			}
 		});
+		
+		// TODO add option check box listener here
 		
 		// ActionListener for the "Generate!" button
 		this.runButton.addActionListener(new ActionListener() {
@@ -363,6 +381,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 			this.ogmodeButton.setEnabled(false);
 			this.timodeButton.setEnabled(false);
 			this.ttmodeButton.setEnabled(false);
+			this.hsmodeButton.setEnabled(false);
 			this.regularmodeButton.setEnabled(false);
 			
 			this.genplayresultsCheckBox.setEnabled(false);
@@ -382,6 +401,7 @@ public class EBingoView extends JPanel implements ViewInterface{
 			this.ogmodeButton.setEnabled(true);
 			this.timodeButton.setEnabled(true);
 			this.ttmodeButton.setEnabled(true);
+			this.hsmodeButton.setEnabled(true);
 			this.regularmodeButton.setEnabled(true);
 			
 			this.genGamblersRuinCheckBox.setEnabled(true);
@@ -434,6 +454,20 @@ public class EBingoView extends JPanel implements ViewInterface{
 					
 					this.dbNameField.setText(dbNameField.getText().trim().
 							replace("EBingo", "TropicalTreasures"));
+					this.genGamblersRuinCheckBox.setEnabled(false);
+					break;
+					
+				case HIGH_STICKS:
+					if (this.model.getConfigFile() != null) {
+						this.configFileField.setText(this.model.getConfigFile().getName());
+					} else {
+						this.configFileField.setText("choose High Sticks Bingo config file");
+						this.blockFileField.setText("choose High Sticks Bingo block file");
+					}
+					
+					this.dbNameField.setText(dbNameField.getText().trim().
+							replace("EBingo", "HighSticks"));
+					this.genGamblersRuinCheckBox.setEnabled(false);
 					break;
 					
 				case REGULAR:

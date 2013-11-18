@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<data>
+
+	<Paytable>
+		<!-- Winpattern information
+			 Note: Make sure all win patterns are inputed as highest payout amount to lowest payout amount
+			 winCode: [string] the type of the win pattern
+			 winPattern: [integer > 0] the decimal representation of the binary win pattern
+			 payout: [integer > 0] 
+			 name: [string]
+		-->
+		<PaytableEntry winCode="reular" winPattern="31" payout="1" name="row5" />
+		<PaytableEntry winCode="reular" winPattern="992" payout="1" name="row4" />
+		<PaytableEntry winCode="reular" winPattern="15360" payout="1" name="row3" />
+		<PaytableEntry winCode="reular" winPattern="507904" payout="1" name="row2" />
+		<PaytableEntry winCode="reular" winPattern="16252928" payout="1" name="row1" />
+		<PaytableEntry winCode="reular" winPattern="8519745" payout="1" name="diagonal" />
+		<PaytableEntry winCode="reular" winPattern="557328" payout="1" name="diagonal" />
+		<PaytableEntry winCode="reular" winPattern="8659472" payout="1" name="col1" />
+		<PaytableEntry winCode="reular" winPattern="4329736" payout="1" name="col2" />
+		<PaytableEntry winCode="reular" winPattern="2162820" payout="1" name="col3" />
+		<PaytableEntry winCode="reular" winPattern="1083458" payout="1" name="col4" />
+		<PaytableEntry winCode="reular" winPattern="541729" payout="1" name="col5" />
+		
+		<PaytableEntry winCode="bonus" winPattern="12845091" payout="1" name="diagonal_corners" />
+		<PaytableEntry winCode="bonus" winPattern="1589784" payout="1" name="diagonal_corners" />
+		
+		<!-- Paytable information
+			 winCode: [string]  the id of the payout
+			 ballsCalled: [integer > 3 && < 26] 
+			 payout: [double > 0]
+		 -->
+		
+		<HSPaytableEntry winCode="0001" ballsCalled="4" payout="20" />
+		<HSPaytableEntry winCode="0002" ballsCalled="5" payout="10" />
+		<HSPaytableEntry winCode="0003" ballsCalled="6" payout="6" />
+		<HSPaytableEntry winCode="0004" ballsCalled="7" payout="3" />
+		<HSPaytableEntry winCode="0005" ballsCalled="8" payout="2" />
+		<HSPaytableEntry winCode="0006" ballsCalled="9" payout="1.25" />
+		<HSPaytableEntry winCode="0007" ballsCalled="10" payout="0.85" />
+		<HSPaytableEntry winCode="0008" ballsCalled="11" payout="0.65" />
+		<HSPaytableEntry winCode="0009" ballsCalled="12" payout="0.5" />
+		<HSPaytableEntry winCode="0010" ballsCalled="13" payout="0.4" />
+		<HSPaytableEntry winCode="0011" ballsCalled="14" payout="0.33" />
+		<HSPaytableEntry winCode="0012" ballsCalled="15" payout="0.27" />
+		<HSPaytableEntry winCode="0013" ballsCalled="16" payout="0.22" />
+		<HSPaytableEntry winCode="0014" ballsCalled="17" payout="0.17" />
+		<HSPaytableEntry winCode="0015" ballsCalled="18" payout="0.13" />
+		<HSPaytableEntry winCode="0016" ballsCalled="19" payout="0.1" />
+		<HSPaytableEntry winCode="0017" ballsCalled="20" payout="0.07" />
+		<HSPaytableEntry winCode="0018" ballsCalled="21" payout="0.05" />
+		<HSPaytableEntry winCode="0019" ballsCalled="22" payout="0.04" />
+		<HSPaytableEntry winCode="0020" ballsCalled="23" payout="0.03" />
+		<HSPaytableEntry winCode="0021" ballsCalled="24" payout="0.02" />
+		<HSPaytableEntry winCode="0022" ballsCalled="25" payout="0.01" />
+		
+		<RBonusPrize multiplier="18" slice="60" /> 
+		<RBonusPrize multiplier="45" slice="38" />
+		<RBonusPrize multiplier="90" slice="2" />
+		
+		<SBonusPrize multiplier="135" slice="70" />
+		<SBonusPrize multiplier="225" slice="15" />
+		<SBonusPrize multiplier="360" slice="10" />
+		<SBonusPrize multiplier="450" slice="4" />
+		<SBonusPrize multiplier="900" slice="1" />
+	</Paytable>
+</data>

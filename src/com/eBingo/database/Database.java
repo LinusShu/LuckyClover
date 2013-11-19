@@ -907,6 +907,7 @@ public class Database {
 					+ "PUSHES bigint NOT NULL, " 
 					+ "BASEPAY double NOT NULL, "
 					+ "BONUSPAY double NOT NULL, "
+					+ "HASCOLOUR bigint NOT NULL, "
 				    + "CNONE bigint NOT NULL, "
 					+ "GREEN bigint NOT NULL, "
 				    + "YELLOW bigint NOT NULL, "
@@ -918,8 +919,8 @@ public class Database {
 		
 		// Add entry to the table if table already exists
 		String query = "insert into " + tableName
-				+ " (ID, PLAYS, CARDS, WINS, LOSSES, LDWS, PUSHES, BASEPAY, BONUSPAY, CNONE, GREEN, YELLOW, RED, RAINBOW) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ " (ID, PLAYS, CARDS, WINS, LOSSES, LDWS, PUSHES, BASEPAY, BONUSPAY, HASCOLOUR, CNONE, GREEN, YELLOW, RED, RAINBOW) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
 		try {
 			if (st == null)
@@ -934,11 +935,12 @@ public class Database {
 			st.setLong(7, hsbie.getPushes());
 			st.setDouble(8, hsbie.getBasePay());
 			st.setDouble(9, hsbie.getBonuspay());
-			st.setLong(10, hsbie.getCornerColour(0));
-			st.setLong(11, hsbie.getCornerColour(1));
-			st.setLong(12, hsbie.getCornerColour(2));
-			st.setLong(13, hsbie.getCornerColour(3));
-			st.setLong(14, hsbie.getCornerColour(4));
+			st.setLong(10, hsbie.getNumCC());
+			st.setLong(11, hsbie.getCornerColour(0));
+			st.setLong(12, hsbie.getCornerColour(1));
+			st.setLong(13, hsbie.getCornerColour(2));
+			st.setLong(14, hsbie.getCornerColour(3));
+			st.setLong(15, hsbie.getCornerColour(4));
 			
 			st.addBatch();
 			batchRequests++;

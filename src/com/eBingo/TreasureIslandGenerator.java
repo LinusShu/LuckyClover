@@ -11,8 +11,8 @@ import com.eBingo.EBingoModel.Card;
 
 public class TreasureIslandGenerator {
 	private static enum Rates {
-		CARD1_ONE_LINE_RATE(97), CARD1_FOUR_CORNERS_RATE(2), CARD1_X_RATE(1),
-		CARD2_ONE_LINE_RATE(78), CARD2_FOUR_CORNERS_RATE(20), CARD2_X_RATE(2);
+		CARD1_ONE_LINE_RATE(98), CARD1_FOUR_CORNERS_RATE(1), CARD1_X_RATE(1),
+		CARD2_ONE_LINE_RATE(93), CARD2_FOUR_CORNERS_RATE(6), CARD2_X_RATE(1);
 		
 		private int rate;
 		private Rates(int rate) {
@@ -26,13 +26,14 @@ public class TreasureIslandGenerator {
 	
 	private final int HITODDS = 20;
 	
-	private int CARD1_ONE_LINE = 10500;
+	private int CARD1_ONE_LINE = 23000;
 	private int CARD1_FOUR_CORNERS = 250;
-	private int CARD1_X = 80;
-	private int CARD2_ONE_LINE = 500;
-	private int CARD2_FOUR_CORNERS = 125;
-	private int CARD2_X = 15;
+	private int CARD1_X = 13;
+	private int CARD2_ONE_LINE = 800;
+	private int CARD2_FOUR_CORNERS = 60;
+	private int CARD2_X = 3;
 	private int DUAL_WINS = 295;
+	private int NO_WINS = 25874;
 	
 	Random ran = new Random();
 	
@@ -181,7 +182,7 @@ public class TreasureIslandGenerator {
 		this.tmpArray5 = new ArrayList<Integer>(array61_75);
 		
 		switch (pattern_id) {
-		// 1st vertical column
+		// 1st column
 		case 1:
 			for (int i = 0; i < 5; i++) {
 				this.called.add(this.tmpArray.get(0));
@@ -199,7 +200,7 @@ public class TreasureIslandGenerator {
 			Collections.shuffle(this.called);
 			break;
 			
-		// 2nd vertical column
+		// 2nd column
 		case 2:
 			for (int i = 0; i < 5; i++) {
 				this.called.add(this.tmpArray2.get(0));
@@ -217,7 +218,7 @@ public class TreasureIslandGenerator {
 			Collections.shuffle(this.called);
 			break;
 		
-		// 3rd vertical column
+		// 3rd column
 		case 3:
 			for (int i = 0; i < 4; i++) {
 				this.called.add(this.tmpArray3.get(0));
@@ -233,6 +234,8 @@ public class TreasureIslandGenerator {
 			generateCard1RestLineWin(tmpCard);
 			Collections.shuffle(this.called);
 			break;
+			
+		// 4th column
 		case 4:
 			for (int i = 0; i < 5; i++) {
 				this.called.add(this.tmpArray4.get(0));
@@ -249,6 +252,8 @@ public class TreasureIslandGenerator {
 			generateCard1RestLineWin(tmpCard);
 			Collections.shuffle(this.called);
 			break;
+			
+		// 5th column
 		case 5:
 			for (int i = 0; i < 5; i++) {
 				this.called.add(this.tmpArray5.get(0));
@@ -265,6 +270,8 @@ public class TreasureIslandGenerator {
 			generateCard1RestLineWin(tmpCard);
 			Collections.shuffle(this.called);
 			break;
+			
+		// 1st row
 		case 6:
 			this.called.add(this.tmpArray.get(0));
 			tmpArray.remove(0);
@@ -287,6 +294,8 @@ public class TreasureIslandGenerator {
 			generateCard1RestLineWin(tmpCard);
 			Collections.shuffle(this.called);
 			break;
+			
+		// 2nd row
 		case 7:
 			this.called.add(this.tmpArray.get(0));
 			tmpArray.remove(0);
@@ -309,6 +318,8 @@ public class TreasureIslandGenerator {
 			generateCard1RestLineWin(tmpCard);
 			Collections.shuffle(this.called);
 			break;
+			
+		// 3rd row
 		case 8:
 			this.called.add(this.tmpArray.get(0));
 			tmpArray.remove(0);
@@ -328,6 +339,8 @@ public class TreasureIslandGenerator {
 			generateCard1RestLineWin(tmpCard);
 			Collections.shuffle(this.called);
 			break;
+			
+		// 4th row
 		case 9:
 			this.called.add(this.tmpArray.get(0));
 			tmpArray.remove(0);
@@ -350,6 +363,8 @@ public class TreasureIslandGenerator {
 			generateCard1RestLineWin(tmpCard);
 			Collections.shuffle(this.called);
 			break;
+			
+		// 5th row
 		case 10:
 			this.called.add(this.tmpArray.get(0));
 			tmpArray.remove(0);
@@ -372,6 +387,8 @@ public class TreasureIslandGenerator {
 			generateCard1RestLineWin(tmpCard);
 			Collections.shuffle(this.called);
 			break;
+			
+		// left-to-right diagonal
 		case 11:
 			this.called.add(this.tmpArray.get(0));
 			tmpArray.remove(0);
@@ -390,8 +407,9 @@ public class TreasureIslandGenerator {
 			
 			generateCard1RestLineWin(tmpCard);
 			Collections.shuffle(this.called);
-			
 			break;
+			
+		// right-to-left diagonal
 		case 12:
 			this.called.add(this.tmpArray.get(0));
 			tmpArray.remove(0);
@@ -418,6 +436,49 @@ public class TreasureIslandGenerator {
 	}
 	
 	private void generateCard1CornerWin() {
+		resetCards(1);
+		
+		tmpCard.setID(++ this.id);
+		tmpCard.setWinName("4_corners");
+		tmpCard.setWin(true);
+		tmpCard.setCreditsWon(20);
+		
+		// Shuffle all the numbers for card columns
+		Collections.shuffle(array1_15);
+		Collections.shuffle(array16_30);
+		Collections.shuffle(array31_45);
+		Collections.shuffle(array46_60);
+		Collections.shuffle(array61_75);
+		
+		// Keep a copy of the shuffled arrays
+		this.tmpArray = new ArrayList<Integer>(array1_15);
+		this.tmpArray2 = new ArrayList<Integer>(array16_30);
+		this.tmpArray3 = new ArrayList<Integer>(array31_45);
+		this.tmpArray4 = new ArrayList<Integer>(array46_60);
+		this.tmpArray5 = new ArrayList<Integer>(array61_75);
+		
+		// Get 4 called numbers
+		this.called.add(this.tmpArray.get(0));
+		tmpArray.remove(0);
+		this.called.add(this.tmpArray.get(0));
+		tmpArray.remove(0);
+		this.called.add(this.tmpArray5.get(0));
+		tmpArray5.remove(0);
+		this.called.add(this.tmpArray5.get(0));
+		tmpArray5.remove(0);
+		
+		// Add the called numbers onto the card
+		tmpCard.setNumberOnCard(0, called.get(0));
+		tmpCard.setNumberOnCard(19, called.get(1));
+		tmpCard.setNumberOnCard(4, called.get(2));
+		tmpCard.setNumberOnCard(23, called.get(3));
+		
+		// Generate the rest of the card1
+		generateCard1RestWin();
+		
+		Collections.shuffle(this.called);
+		this.cards.add(tmpCard);
+		this.CARD1_FOUR_CORNERS --;
 	}
 	
 	private void generateCard1XWin() {
@@ -481,41 +542,50 @@ public class TreasureIslandGenerator {
 		
 		generateCard1RestWin();
 		
-		this.cards.add(tmpCard);
 		Collections.shuffle(called);
+		this.cards.add(tmpCard);
 		this.CARD1_X --;
 	}
 	
 	private void generateCard1NoWin() {
 		
+		Collections.shuffle(called);
+		this.cards.add(tmpCard);
+		this.NO_WINS --;
 	}
 	
 	private boolean generateCard2LineWin() {
 		int pattern_id =0;
 		boolean valid = false; 
 		List<Integer> hits = new ArrayList<Integer>(5);
+		List<Integer> pids = new ArrayList<Integer>(12);
 		resetCards(2);
 		
 		tmpCard.setID(++ this.id);
 		tmpCard.setWinName("one_line_anyway");
 		tmpCard.setWin(true);
 		tmpCard.setCreditsWon(4);
+		pattern_id = 1;
 		
-		while (!valid) {
-			pattern_id = ran.nextInt(12) + 1;
+		while (!valid || pids.size() >= 12) {
+			while (pids.contains(pattern_id))
+				pattern_id = ran.nextInt(12) + 1;
+			
+			
 			this.tmpCalled = new ArrayList<Integer>(this.called);
 			Collections.sort(tmpCalled);
 			
 			switch (pattern_id) {
-			// 1st vertical column
+			
+			// 1st column
 			case 1:
 				// Find if the called numbers have 5 numbers within the range of the first column of the card
 				for (int i = 0; i < 5; i++) {
 					int num = findNumInRange(tmpCalled, 1, 15);
-					if (num != -1) 
-						hits.add(num);
-				    else 
+					if (num == -1) 
 						break;
+				    else 
+						hits.add(num);
 				}
 				
 				// If the pattern can be formed
@@ -531,9 +601,11 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
-			// 2nd vertical column
+			// 2nd column
 			case 2:
 				// Find if the called numbers have 5 numbers within the range of the first column of the card
 				for (int i = 0; i < 5; i++) {
@@ -558,6 +630,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 			
 			// 3rd vertical column
@@ -583,6 +657,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
 			case 4:
@@ -608,6 +684,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
 			case 5:
@@ -633,6 +711,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
 			case 6:
@@ -651,6 +731,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
 			case 7:
@@ -669,6 +751,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
 			case 8:
@@ -686,6 +770,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
 			case 9:
@@ -704,6 +790,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
 			case 10:
@@ -722,6 +810,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
 			case 11:
@@ -739,6 +829,8 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
 				break;
 				
 			case 12:
@@ -756,10 +848,10 @@ public class TreasureIslandGenerator {
 				}
 				
 				hits.clear();
-				break;
-				
-			}
-			
+				if (!pids.contains(pattern_id))
+					pids.add(pattern_id);
+				break;	
+			}	
 		}
 		
 		this.cards.add(tmpCard);
@@ -767,10 +859,12 @@ public class TreasureIslandGenerator {
 		this.play.put(this.called, this.cards);
 		this.cards = new ArrayList<Card>(2);
 		this.called = new ArrayList<Integer>(25);
+		pids.clear();
 		return valid;
 	}
 	
 	private void generateCard2CornerWin() {
+		
 		this.play.put(this.called, this.cards);
 	}
 	
@@ -782,7 +876,6 @@ public class TreasureIslandGenerator {
 		int max_corner_hits_allowed = 3;
 		int[] max_column_hits_allowed = {4, 4, 3, 4, 4};
 		int[] max_row_hits_allowed = {4, 4, 3, 4, 4};
-		boolean valid = true;
 		
 		this.tmpCalled = new ArrayList<Integer>(this.called);
 		Collections.sort(tmpCalled);
@@ -813,8 +906,7 @@ public class TreasureIslandGenerator {
 					this.tmpArray.remove(0);
 				// If the card can't be filled
 				} else {
-					valid = false;
-					return valid;
+					return false;
 				}
 				
 			// If the cell is not going to be a hits 
@@ -823,8 +915,7 @@ public class TreasureIslandGenerator {
 				this.tmpArray.remove(0);
 			// If the card can't be filled
 			} else {
-				valid = false;
-				return valid;
+				return false;
 			}
 			// fix card index to avoid generating number for the middle free cell
 			if (i == 10)
@@ -854,8 +945,7 @@ public class TreasureIslandGenerator {
 						this.tmpArray2.remove(0);
 					// If the card can't be filled
 					} else {
-						valid = false;
-						return valid;
+						return false;
 					}
 				// If it is not going to be a hit
 				} else if (tmpArray2.size() > 0){
@@ -863,8 +953,7 @@ public class TreasureIslandGenerator {
 					this.tmpArray2.remove(0);
 				// If the card can't be filled
 				} else {
-					valid = false;
-					return valid;
+					return false;
 				}
 			}
 			
@@ -897,8 +986,7 @@ public class TreasureIslandGenerator {
 							this.tmpArray3.remove(0);
 						// If the card can't be filled
 						} else {
-							valid = false;
-							return valid;
+							return false;
 						}
 					// If it is not going to be a hit
 					} else if (tmpArray3.size() > 0) {
@@ -906,8 +994,7 @@ public class TreasureIslandGenerator {
 						this.tmpArray3.remove(0);
 					// If the card can't be filled
 					} else {
-						valid = false;
-						return valid;
+						return false;
 					}
 				} 
 			} else {
@@ -936,8 +1023,7 @@ public class TreasureIslandGenerator {
 						this.tmpArray4.remove(0);
 					// If the card can't be filled
 					} else {
-						valid = false;
-						return valid;
+						return false;
 					}
 				// If it is not going to be a hit
 				} else if (tmpArray4.size() > 0){
@@ -945,8 +1031,7 @@ public class TreasureIslandGenerator {
 					this.tmpArray4.remove(0);
 				// If the card can't be filled
 				} else {
-					valid = false;
-					return valid;
+					return false;
 				}
 			} 	
 			
@@ -985,8 +1070,7 @@ public class TreasureIslandGenerator {
 						tmpCard.setNumberOnCard(i, this.tmpArray5.get(0));
 						this.tmpArray5.remove(0);
 					} else {
-						valid = false;
-						return valid;
+						return false;
 					}
 				// If it is not going to be a hit
 				} else if (tmpArray5.size() > 0) {
@@ -994,7 +1078,6 @@ public class TreasureIslandGenerator {
 					this.tmpArray5.remove(0);
 				// If the card can't be filled
 				} else {
-					valid = false;
 					return false;
 				}
 			}
@@ -1002,12 +1085,10 @@ public class TreasureIslandGenerator {
 			// fix card index to avoid generating number for the middle free cell
 			if (i == 9)
 				i --;
-			
 			row ++;
 		}
 		
-		return valid;
-		
+		return true;
 	}
 	
 	private void generateCard1RestLineWin(Card card) {
@@ -1218,7 +1299,6 @@ public class TreasureIslandGenerator {
 	
 	private boolean generateCard2RestLineWin(Card card) {
 		int max_corner_hits_allowed = 3; 
-		boolean valid = true;
 		
 		// Check the number of hits on corners
 		if (card.getNumberOnCard(0) != 0) 
@@ -1230,7 +1310,7 @@ public class TreasureIslandGenerator {
 		if (card.getNumberOnCard(23) != 0) 
 			max_corner_hits_allowed --;
 		
-		// Generate first column
+		// Generate 1st column
 		for (int i = 0; i < 20; i += 5) {
 			// If there is no number on the card at this cell
 			if (card.getNumberOnCard(i) == 0) {
@@ -1252,8 +1332,7 @@ public class TreasureIslandGenerator {
 						this.tmpArray.remove(0);
 					// If the card can't be filled
 					} else {
-						valid = false;
-						return valid;
+						return false;
 					}
 				// If it is not going to be a hit
 				} else if (tmpArray.size() > 0) {
@@ -1261,8 +1340,7 @@ public class TreasureIslandGenerator {
 					this.tmpArray.remove(0);
 				// If the card can't be filled
 				} else {
-					valid = false;
-					return valid;
+					return false;
 				}
 			} 
 			// fix card index to avoid generating number for the middle free cell
@@ -1286,8 +1364,7 @@ public class TreasureIslandGenerator {
 						this.tmpArray2.remove(0);
 					// If the card can't be filled
 					} else {
-						valid = false;
-						return valid;
+						return false;
 					}
 				// If it is not going to be a hit
 				} else if (tmpArray2.size() > 0){
@@ -1295,8 +1372,7 @@ public class TreasureIslandGenerator {
 					this.tmpArray2.remove(0);
 				// If the card can't be filled
 				} else { 
-					valid = false;
-					return valid;
+					return false;
 			}
 		}
 			
@@ -1324,8 +1400,7 @@ public class TreasureIslandGenerator {
 							this.tmpArray3.remove(0);
 						// If the card can't be filled
 						} else {
-							valid = false;
-							return valid;
+							return false;
 						}
 					// If it is not going to be a hit
 					} else if (tmpArray3.size() > 0) {
@@ -1333,8 +1408,7 @@ public class TreasureIslandGenerator {
 						this.tmpArray3.remove(0);
 					// If the card can't be filled
 					} else {
-						valid = false;
-						return valid;
+						return false;
 					}
 				} 
 			} else {
@@ -1358,8 +1432,7 @@ public class TreasureIslandGenerator {
 						this.tmpArray4.remove(0);
 					// If the card can't be filled
 					} else {
-						valid = false;
-						return valid;
+						return false;
 					}
 				// If it is not going to be a hit
 				} else if (tmpArray4.size() > 0){
@@ -1367,8 +1440,7 @@ public class TreasureIslandGenerator {
 					this.tmpArray4.remove(0);
 				// If the card can't be filled
 				} else {
-					valid = false;
-					return valid;
+					return false;
 				}
 			} 	
 			
@@ -1399,8 +1471,7 @@ public class TreasureIslandGenerator {
 						this.tmpArray5.remove(0);
 					// If the card can't be filled
 					} else {
-						valid = false;
-						return valid;
+						return false;
 					}
 				// If it is not going to be a hit
 				} else if (tmpArray5.size() > 0) {
@@ -1408,8 +1479,7 @@ public class TreasureIslandGenerator {
 					this.tmpArray5.remove(0);
 				// If the card can't be filled
 				} else {
-					valid = false;
-					return valid;
+					return false;
 				}
 			}
 			
@@ -1418,7 +1488,7 @@ public class TreasureIslandGenerator {
 				i --;
 		}
 		
-		return valid;
+		return true;
 	}
 	
 	private void generateRestCalled() {

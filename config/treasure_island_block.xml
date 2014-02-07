@@ -1,27 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <data>
 	<blocks>
-		<!-- Block Information for LuckyClover mode
+		<!-- Block Information for Treasure Island mode
 			 numplays: [integer > 0]
-			 numcards: [Let n be numplays, numcards = 2n or 2n-1]
+			 numcards: [integer >= 5; also if n is the numplays, numcards = 2n or 2n-1]
 			 wager: [double > 0]
 			 repeat: [integer > 0 && < 10000]
 		 -->
 		 
 		 <block numplays="25000" numcards="50000" wager="0.50" repeat="1"/> 
 	</blocks>
-	
-	<grblocks>
-		<!-- Gambler's Ruin block information for LucyClover mode
-			numcards: [integer > 0]
-			wager: [float > 0]
-			bankroll: [double > 0]
-			repeat: [integer > 0 && < 10000]
-			Note: when grblocks is present, the normal blocks are not processed 
-		-->
-		
-		<grblock numcards="1" wager="1" bankroll="100" repeat="10000"/>
-		<grblock numcards="4" wager="0.25" bankroll="100" repeat="10000"/>
-	</grblocks>
 	
 </data>

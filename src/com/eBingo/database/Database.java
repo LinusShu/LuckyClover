@@ -407,23 +407,12 @@ public class Database {
 	public static void insertIntoTable(String tableName, Result r) throws SQLException {
 		tableName = tableName.toUpperCase();
 		
-		String balls = "";
-		String ballsQ = "";
-		String ballsI = "";
-		
 		String cards = "";
 		String cardsQ = "";
 		String cardsI = "";
 		
 		// Create the table if does not exist yet
 		if (!Database.doesTableExist(tableName)) {
-			
-			// Prepare balls query string
-			for (int i = 0; i < r.getBalls().length; i++) {
-				balls += ", BALL_" + i + " integer NOT NULL";
-				ballsI += ", BALL_" + i;
-				ballsQ += ", ?";
-			}
 			
 			// Prepare cards query string
 			for (int i = 0; i < r.getCards().size(); i++) {
@@ -442,7 +431,7 @@ public class Database {
 				
 				cardsQ += ", ?, ?, ?, ?, ?";
 				
-				for (int j = 0; j < r.getCard(i).getNumbersOnCard().length; j++) {
+				for (int j = 0; j < r.getCard(i).getNumbersOnCard().size(); j++) {
 					cards += ", CARD" + i + "_NUM" + j + " integer NOT NULL";
 					cardsI += ", CARD" + i + "_NUM" + j;
 					cardsQ += ", ?";
@@ -456,16 +445,17 @@ public class Database {
 					+ "BLOCKID bigint NOT NULL, "
 					+ "NUMOFCARDS integer NOT NULL, "
 					+ "WAGER double NOT NULL, "
-					+ "TOTALWIN double NOT NULL"
-					+ balls + cards + ")";
+					+ "TOTALWIN double NOT NULL, "
+					+ "BALLS varchar(100) NOT NULL" 
+					+ cards + ")";
 			
 			Database.createTable(tableName, query);
 		}
 		
 		// Insert the result if table already exists
 		String query = "insert into " + tableName
-				+ " (PLAYID, BLOCKID, NUMOFCARDS, WAGER, TOTALWIN" + ballsI + cardsI + ") "
-				+ "values(?, ?, ?, ?, ?" + ballsQ + cardsQ + ")";
+				+ " (PLAYID, BLOCKID, NUMOFCARDS, WAGER, TOTALWIN, BALLS"  + cardsI + ") "
+				+ "values(?, ?, ?, ?, ?, ?" + cardsQ + ")";
 		
 		try {
 			if (st == null) 
@@ -476,13 +466,9 @@ public class Database {
 			st.setInt(3, r.getNumCards());
 			st.setDouble(4, r.getWager());
 			st.setDouble(5, r.getDollarsWon());
+			st.setString(6, r.getBalls().toString());
 			
-			int index = 6;
-			
-			for (int i = 0; i < r.getBalls().length; i++) {
-				st.setInt(index, r.getBall(i));
-				index++;
-			}
+			int index = 7;
 			
 			for (int i = 0; i < r.getCards().size(); i++) {
 				Card c = r.getCard(i);
@@ -502,7 +488,7 @@ public class Database {
 				st.setString(index, c.getRedSquareLocations().toString());
 				index++;
 				
-				for (int j = 0; j < c.getNumbersOnCard().length; j++) {
+				for (int j = 0; j < c.getNumbersOnCard().size(); j++) {
 					st.setInt(index, c.getNumberOnCard(j));
 					index++;
 				}
@@ -725,7 +711,7 @@ public class Database {
 			st.setInt(3, rr.getNumCards());
 			st.setInt(4, rr.getNumPlayers());
 			st.setDouble(5, rr.getWager());
-			st.setString(6, Arrays.toString(rr.getBalls()));
+			st.setString(6, rr.getBalls().toString());
 			st.setString(7, rr.getPlayersWon().toString());
 			st.setString(8, rr.getPlayerWinAmount().toString());
 			
@@ -735,7 +721,7 @@ public class Database {
 				Player p = rr.getPlayer(i);
 				
 				for (int j = 0; j < p.getNumCards(); j++) {
-					st.setString(index, Arrays.toString(p.getCard(j).getNumbersOnCard()));
+					st.setString(index, p.getCard(j).getNumbersOnCard().toString());
 					index++;
 				}
 			
@@ -768,6 +754,7 @@ public class Database {
 					+ "LDWS bigint NOT NULL, "
 					+ "PUSHES bigint NOT NULL, " 
 					+ "MULTIWINS bigint NOT NULL, "
+					+ "TOTALWIN double NOT NULL, "
 					+ "REDSQUARES bigint NOT NULL, "
 					+ "FLASHING_REDSQUARES bigint NOT NULL)";
 
@@ -776,8 +763,8 @@ public class Database {
 		
 		// Add entry to the table if table already exists
 		String query = "insert into " + tableName
-				+ " (ID, PLAYS, CARDS, WINS, LOSSES, LDWS, PUSHES, MULTIWINS, REDSQUARES, FLASHING_REDSQUARES) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ " (ID, PLAYS, CARDS, WINS, LOSSES, LDWS, PUSHES, MULTIWINS, TOTALWIN, REDSQUARES, FLASHING_REDSQUARES) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
 		try {
 			if (st == null)
@@ -791,8 +778,9 @@ public class Database {
 			st.setLong(6, bie.getLDWs());
 			st.setLong(7, bie.getPushes());
 			st.setLong(8, bie.getMultiWins());
-			st.setLong(9, bie.getRedSquares());
-			st.setLong(10, bie.getFlashingRedSquares());
+			st.setDouble(9, bie.getTotalWin());
+			st.setLong(10, bie.getRedSquares());
+			st.setLong(11, bie.getFlashingRedSquares());
 			
 			st.addBatch();
 			batchRequests++;

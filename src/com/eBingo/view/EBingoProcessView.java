@@ -30,6 +30,7 @@ public class EBingoProcessView extends JPanel implements ViewInterface {
 	
 	private EBingoModel model;
 	
+	
 	private GridBagLayout layout;
 	private GridBagConstraints gbc;
 	

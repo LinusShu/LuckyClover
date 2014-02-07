@@ -7,9 +7,10 @@
 			 wager: [double > 0]
 			 repeat: [integer > 0 && < 10000]
 		 -->
-		 
-		 <block numplays="250000" numcards="4" wager="0.25" repeat="1"/> 
-		  
+		 <block numplays="1000000" numcards="1" wager="1.00" repeat="1"/>
+		 <!--  
+		 <block numplays="1000000" numcards="4" wager="0.25" repeat="1"/> 
+		 -->
 		 
 		 <!-- Blocks for percent losers table -->
 		 <!-- 
